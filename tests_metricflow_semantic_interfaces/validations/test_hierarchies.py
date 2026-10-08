@@ -352,6 +352,22 @@ def _shorthand_semantic_manifest(
             """
         )
         + textwrap.indent(textwrap.dedent(offices_hierarchies), "  ")
+        + textwrap.dedent(
+            """\
+            ---
+            semantic_model:
+              name: country_facts
+              node_relation:
+                schema_name: some_schema
+                alias: country_facts
+              entities:
+                - name: country
+                  type: primary
+              dimensions:
+                - name: currency
+                  type: categorical
+            """
+        )
     )
     return parse_yaml_files_to_validation_ready_semantic_manifest(
         [
@@ -384,4 +400,18 @@ def test_hierarchy_cannot_join_through_primary_entity_shorthand() -> None:
     )
 
     with pytest.raises(SemanticManifestValidationException, match="Level `country__continent` .* does not resolve"):
+        _validate(semantic_manifest)
+
+
+def test_hierarchy_cannot_join_out_of_primary_entity_shorthand() -> None:
+    """Test that a model with only a `primary_entity` shorthand cannot reach another model's dimensions."""
+    semantic_manifest = _shorthand_semantic_manifest(
+        countries_hierarchies="""\
+        hierarchies:
+          - name: world
+            levels: [country__continent, country__currency]
+        """
+    )
+
+    with pytest.raises(SemanticManifestValidationException, match="Level `country__currency` .* does not resolve"):
         _validate(semantic_manifest)

@@ -67,12 +67,12 @@ class _DimensionResolver:
 
         reachable_models: Sequence[SemanticModel] = (anchor,)
         for entity_link in entity_links:
-            if not any(_has_entity(model, entity_link) for model in reachable_models):
-                return None
-            # A `primary_entity` shorthand qualifies the model's own dimensions but is not a join key to other models.
-            reachable_models = [
-                model for model in reachable_models if model.primary_entity == entity_link
-            ] + self._models_by_linkable_entity.get(entity_link, [])
+            # A `primary_entity` shorthand has no entity column, so it qualifies the model's own dimensions but cannot
+            # join to other models.
+            shorthand_models = [model for model in reachable_models if model.primary_entity == entity_link]
+            declares_entity = any(entity.name == entity_link for model in reachable_models for entity in model.entities)
+            joined_models = self._models_by_linkable_entity.get(entity_link, []) if declares_entity else []
+            reachable_models = shorthand_models + joined_models
 
         return _resolved_dimension(
             entity_links=tuple(entity_links), element_name=element_name, semantic_models=reachable_models
@@ -95,12 +95,6 @@ def _resolved_dimension(
         dimension_name=element_name,
         is_time_dimension=any(dimension_type is DimensionType.TIME for _, dimension_type in matches),
         semantic_model_names=frozenset(semantic_model_name for semantic_model_name, _ in matches),
-    )
-
-
-def _has_entity(semantic_model: SemanticModel, entity_name: str) -> bool:
-    return semantic_model.primary_entity == entity_name or any(
-        entity.name == entity_name for entity in semantic_model.entities
     )
 
 
