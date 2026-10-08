@@ -41,6 +41,12 @@ class DimensionHierarchy(Protocol):
 
     @property
     @abstractmethod
+    def label(self) -> Optional[str]:
+        """A human readable name for the hierarchy, which, unlike `name`, is not limited to identifier characters."""
+        pass
+
+    @property
+    @abstractmethod
     def levels(self) -> Sequence[DimensionHierarchyLevel]:
         """The levels of this hierarchy, ordered from the coarsest to the finest."""
         pass

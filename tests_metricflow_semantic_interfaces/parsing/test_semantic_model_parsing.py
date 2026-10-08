@@ -699,6 +699,7 @@ def test_semantic_model_hierarchies_parsing() -> None:
               type: categorical
           hierarchies:
             - name: sales_geography
+              label: Sales geography
               levels: [country, sales_region, city]
             - name: reporting_line
               levels:
@@ -715,6 +716,8 @@ def test_semantic_model_hierarchies_parsing() -> None:
     assert [hierarchy.name for hierarchy in semantic_model.hierarchies] == ["sales_geography", "reporting_line"]
 
     sales_geography, reporting_line = semantic_model.hierarchies
+    assert sales_geography.label == "Sales geography"
+    assert reporting_line.label is None
     assert [(level.dimension, level.parent) for level in sales_geography.levels] == [
         ("country", None),
         ("sales_region", None),

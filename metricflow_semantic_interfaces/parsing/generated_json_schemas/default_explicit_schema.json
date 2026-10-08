@@ -381,6 +381,9 @@
             "$id": "hierarchy_schema",
             "additionalProperties": false,
             "properties": {
+                "label": {
+                    "type": "string"
+                },
                 "levels": {
                     "items": {
                         "$ref": "#/definitions/hierarchy_level_schema"

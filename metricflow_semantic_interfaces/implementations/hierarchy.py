@@ -37,4 +37,5 @@ class PydanticDimensionHierarchy(HashableBaseModel, ProtocolHint[DimensionHierar
         return self
 
     name: str
+    label: Optional[str] = None
     levels: Sequence[PydanticDimensionHierarchyLevel]

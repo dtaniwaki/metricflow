@@ -576,6 +576,7 @@ hierarchy_schema = {
             "type": "string",
             "pattern": TRANSFORM_OBJECT_NAME_PATTERN,
         },
+        "label": {"type": "string"},
         "levels": {"type": "array", "items": {"$ref": "hierarchy_level_schema"}, "minItems": 1},
     },
     "additionalProperties": False,
