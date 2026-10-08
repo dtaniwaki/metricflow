@@ -311,3 +311,77 @@ def test_hierarchy_with_invalid_name() -> None:
 
     with pytest.raises(SemanticManifestValidationException, match="Invalid name `Geography Tree`"):
         _validate(semantic_manifest)
+
+
+def _shorthand_semantic_manifest(
+    countries_hierarchies: str = "", offices_hierarchies: str = ""
+) -> PydanticSemanticManifest:
+    yaml_contents = (
+        textwrap.dedent(
+            """\
+            semantic_model:
+              name: countries
+              node_relation:
+                schema_name: some_schema
+                alias: countries
+              primary_entity: country
+              dimensions:
+                - name: continent
+                  type: categorical
+                - name: country_name
+                  type: categorical
+            """
+        )
+        + textwrap.indent(textwrap.dedent(countries_hierarchies), "  ")
+        + textwrap.dedent(
+            """\
+            ---
+            semantic_model:
+              name: offices
+              node_relation:
+                schema_name: some_schema
+                alias: offices
+              entities:
+                - name: office
+                  type: primary
+                - name: country
+                  type: foreign
+              dimensions:
+                - name: office_name
+                  type: categorical
+            """
+        )
+        + textwrap.indent(textwrap.dedent(offices_hierarchies), "  ")
+    )
+    return parse_yaml_files_to_validation_ready_semantic_manifest(
+        [
+            EXAMPLE_PROJECT_CONFIGURATION_YAML_CONFIG_FILE,
+            YamlConfigFile(filepath="shorthand.yaml", contents=yaml_contents),
+        ]
+    ).semantic_manifest
+
+
+def test_hierarchy_with_primary_entity_shorthand_valid() -> None:  # noqa: D103
+    semantic_manifest = _shorthand_semantic_manifest(
+        countries_hierarchies="""\
+        hierarchies:
+          - name: world
+            levels: [country__continent, country__country_name]
+        """
+    )
+
+    _validate(semantic_manifest)
+
+
+def test_hierarchy_cannot_join_through_primary_entity_shorthand() -> None:
+    """Test that a `primary_entity` shorthand is not a join key, as in MetricFlow's group-by resolution."""
+    semantic_manifest = _shorthand_semantic_manifest(
+        offices_hierarchies="""\
+        hierarchies:
+          - name: office_geography
+            levels: [country__continent, office_name]
+        """
+    )
+
+    with pytest.raises(SemanticManifestValidationException, match="Level `country__continent` .* does not resolve"):
+        _validate(semantic_manifest)
