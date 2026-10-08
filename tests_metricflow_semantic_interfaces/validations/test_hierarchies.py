@@ -415,3 +415,33 @@ def test_hierarchy_cannot_join_out_of_primary_entity_shorthand() -> None:
 
     with pytest.raises(SemanticManifestValidationException, match="Level `country__currency` .* does not resolve"):
         _validate(semantic_manifest)
+
+
+def test_hierarchy_with_local_dimension_through_another_entity_is_duplicate() -> None:
+    """Test that `branch__city` on a model with a `branch` unique entity is the same level as `city`."""
+    yaml_contents = textwrap.dedent(
+        """\
+        semantic_model:
+          name: stores
+          node_relation:
+            schema_name: some_schema
+            alias: stores
+          entities:
+            - name: store
+              type: primary
+            - name: branch
+              type: unique
+          dimensions:
+            - name: city
+              type: categorical
+          hierarchies:
+            - name: geography
+              levels: [city, branch__city]
+        """
+    )
+    semantic_manifest = parse_yaml_files_to_validation_ready_semantic_manifest(
+        [EXAMPLE_PROJECT_CONFIGURATION_YAML_CONFIG_FILE, YamlConfigFile(filepath="stores.yaml", contents=yaml_contents)]
+    ).semantic_manifest
+
+    with pytest.raises(SemanticManifestValidationException, match="lists the level `branch__city` more than once"):
+        _validate(semantic_manifest)

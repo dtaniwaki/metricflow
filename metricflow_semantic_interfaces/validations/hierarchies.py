@@ -28,9 +28,9 @@ _LINKABLE_ENTITY_TYPES = (EntityType.PRIMARY, EntityType.UNIQUE, EntityType.NATU
 class _ResolvedDimension:
     """A hierarchy level resolved against the manifest.
 
-    `entity_links` is the full entity path, with a bare name expanded to the anchor's primary entity, so that `city`
-    and `store__city` on a semantic model whose primary entity is `store` compare equal. `semantic_model_names` are the
-    semantic models that have the dimension, since a link can reach more than one.
+    `entity_links` is empty for the anchor's own dimensions, however they are written (`city`, `store__city` or
+    `branch__city`), so those compare equal. `semantic_model_names` are the semantic models that have the dimension,
+    since a link can reach more than one.
     """
 
     entity_links: Tuple[str, ...]
@@ -57,22 +57,20 @@ class _DimensionResolver:
 
     def resolve(self, anchor: SemanticModel, name: str) -> Optional[_ResolvedDimension]:
         *entity_links, element_name = name.split(DUNDER)
-        if not entity_links:
-            primary_entity = _primary_entity_name(anchor)
-            return _resolved_dimension(
-                entity_links=(primary_entity,) if primary_entity is not None else (),
-                element_name=element_name,
-                semantic_models=(anchor,),
-            )
+        # The anchor's own dimensions are exposed through each of its linkable entities, so `branch__city` on a model
+        # with a `branch` unique entity is the same dimension as `city`.
+        if not entity_links or (
+            len(entity_links) == 1
+            and _exposes_locally(anchor, entity_links[0])
+            and any(dimension.name == element_name for dimension in anchor.dimensions)
+        ):
+            return _resolved_dimension(entity_links=(), element_name=element_name, semantic_models=(anchor,))
 
         reachable_models: Sequence[SemanticModel] = (anchor,)
         for entity_link in entity_links:
-            # A `primary_entity` shorthand has no entity column, so it qualifies the model's own dimensions but cannot
-            # join to other models.
-            shorthand_models = [model for model in reachable_models if model.primary_entity == entity_link]
+            # A `primary_entity` shorthand has no entity column, so only a declared entity can join to other models.
             declares_entity = any(entity.name == entity_link for model in reachable_models for entity in model.entities)
-            joined_models = self._models_by_linkable_entity.get(entity_link, []) if declares_entity else []
-            reachable_models = shorthand_models + joined_models
+            reachable_models = self._models_by_linkable_entity.get(entity_link, []) if declares_entity else []
 
         return _resolved_dimension(
             entity_links=tuple(entity_links), element_name=element_name, semantic_models=reachable_models
@@ -98,13 +96,10 @@ def _resolved_dimension(
     )
 
 
-def _primary_entity_name(semantic_model: SemanticModel) -> Optional[str]:
-    if semantic_model.primary_entity is not None:
-        return semantic_model.primary_entity
-    for entity in semantic_model.entities:
-        if entity.type is EntityType.PRIMARY:
-            return entity.name
-    return None
+def _exposes_locally(semantic_model: SemanticModel, entity_name: str) -> bool:
+    return semantic_model.primary_entity == entity_name or any(
+        entity.name == entity_name and entity.type in _LINKABLE_ENTITY_TYPES for entity in semantic_model.entities
+    )
 
 
 class SemanticModelHierarchiesRule(SemanticManifestValidationRule[SemanticManifestT], Generic[SemanticManifestT]):
