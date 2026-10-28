@@ -12,6 +12,7 @@ from metricflow_semantics.errors.error_classes import InvalidManifestException
 from metricflow_semantics.model.semantic_manifest_lookup import SemanticManifestLookup
 from metricflow_semantics.model.semantic_model_derivation import SemanticModelDerivation
 from metricflow_semantics.model.semantics.linkable_element_set_base import BaseGroupByItemSet
+from metricflow_semantics.model.semantics.metric_lookup import MetricLookup
 from metricflow_semantics.naming.metric_scheme import MetricNamingScheme
 from metricflow_semantics.query.group_by_item.filter_spec_resolution.filter_pattern_factory import (
     WhereFilterPatternFactory,
@@ -66,6 +67,9 @@ from metricflow_semantics.semantic_graph.attribute_resolution.group_by_item_set 
 from metricflow_semantics.specs.instance_spec import InstanceSpec, LinkableInstanceSpec
 from metricflow_semantics.specs.metric_spec import MetricSpec
 from metricflow_semantics.specs.order_by_spec import OrderBySpec
+from metricflow_semantics.specs.patterns.leading_entity_link_dropping import (
+    iter_alias_patterns_for_no_metrics_query,
+)
 from metricflow_semantics.specs.patterns.spec_pattern import SpecPattern
 from metricflow_semantics.specs.query_spec import InputSpecOrder, MetricFlowQuerySpec
 from metricflow_semantics.specs.spec_set import group_specs_by_type
@@ -314,6 +318,8 @@ class MetricFlowQueryResolver:
         metric_specs: Sequence[MetricSpec],
         group_by_item_specs: Sequence[LinkableInstanceSpec],
         query_resolution_path: MetricFlowQueryResolutionPath,
+        metric_lookup: MetricLookup,
+        is_query_without_metrics: bool,
     ) -> ResolveOrderByResult:
         mapping_items: List[InputToIssueSetMappingItem] = []
         order_by_specs: MutableOrderedSet[OrderBySpec] = MutableOrderedSet()
@@ -328,14 +334,23 @@ class MetricFlowQueryResolver:
             specs_matching_order_by: set[InstanceSpec] = set()
             for possible_input in resolver_input_for_order_by.possible_inputs:
                 # If the order-by does not specify an alias, the matching can be done with all specs in the query.
-                if possible_input.alias is None:
-                    specs_matching_order_by.update(possible_input.spec_pattern.match(order_by_helper.all_specs))
                 # If an order-by specifies an alias, the matching can only be done with specs in the query that
                 # have the same alias.
-                else:
-                    specs_matching_order_by.update(
-                        possible_input.spec_pattern.match(order_by_helper.specs_with_alias(possible_input.alias))
-                    )
+                candidate_specs = (
+                    order_by_helper.all_specs
+                    if possible_input.alias is None
+                    else order_by_helper.specs_with_alias(possible_input.alias)
+                )
+                matching_specs = possible_input.spec_pattern.match(candidate_specs)
+                if len(matching_specs) == 0 and is_query_without_metrics:
+                    for alias_patterns in iter_alias_patterns_for_no_metrics_query(
+                        (possible_input.spec_pattern,), metric_lookup
+                    ):
+                        (alias_pattern,) = alias_patterns
+                        matching_specs = alias_pattern.match(candidate_specs)
+                        if len(matching_specs) > 0:
+                            break
+                specs_matching_order_by.update(matching_specs)
 
             if len(specs_matching_order_by) != 1:
                 mapping_items.append(
@@ -537,6 +552,8 @@ class MetricFlowQueryResolver:
             metric_specs=metric_specs,
             group_by_item_specs=group_by_item_specs,
             query_resolution_path=query_resolution_path,
+            metric_lookup=self._manifest_lookup.metric_lookup,
+            is_query_without_metrics=len(metric_specs) == 0,
         )
         order_by_specs = resolve_order_by_result.order_by_specs
         if resolve_order_by_result.input_to_issue_set_mapping.has_issues:

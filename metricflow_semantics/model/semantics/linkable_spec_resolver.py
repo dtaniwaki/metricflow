@@ -29,6 +29,18 @@ class GroupByItemSetResolver(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_set_for_distinct_values_query_allowing_joins(
+        self,
+        set_filter: Optional[GroupByItemSetFilter] = None,
+    ) -> BaseGroupByItemSet:
+        """Returns the items for a distinct group-by-item values query, including ones that need joins.
+
+        This is the set that a query with metrics would have for the same semantic models. It is only meant for checking
+        if a name is valid when joins are allowed, as the dataflow plan builder can't satisfy all of these items.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def get_common_set(
         self,
         metric_references: Iterable[MetricReference] = (),

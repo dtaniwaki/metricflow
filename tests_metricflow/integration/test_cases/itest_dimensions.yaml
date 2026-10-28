@@ -425,3 +425,15 @@ integration_test:
     FROM {{ source_schema }}.dim_listings_latest l
     CROSS JOIN {{ source_schema }}.mf_time_spine ts
     WHERE l.country = 'us'
+---
+integration_test:
+  name: query_multi_hop_dimension_only
+  description: Query a dimension that is named through 2 entity links without metrics. The leading entity link is dropped.
+  model: SIMPLE_MODEL
+  group_bys: ["listing__user__home_state_latest"]
+  check_query: |
+    SELECT
+      u.home_state_latest AS user__home_state_latest
+    FROM {{ source_schema }}.dim_users_latest u
+    GROUP BY
+      u.home_state_latest
