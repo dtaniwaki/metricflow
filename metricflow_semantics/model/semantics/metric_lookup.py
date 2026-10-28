@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import Dict, Final, Iterable, Sequence
+from types import MappingProxyType
+from typing import Dict, Final, Iterable, Mapping, Sequence
 
 from metricflow_semantics.errors.error_classes import (
     DuplicateMetricError,
@@ -78,6 +79,9 @@ class MetricLookup:
         ] = ResultCache()
         self._result_cache_for_aggregation_time_dimension_specs: ResultCache[
             str, FrozenOrderedSet[TimeDimensionSpec]
+        ] = ResultCache()
+        self._result_cache_for_aggregation_time_dimension_specs_by_simple_metric: ResultCache[
+            MetricReference, Mapping[MetricReference, FrozenOrderedSet[TimeDimensionSpec]]
         ] = ResultCache()
         self._result_cache_for_derived_from_semantic_models: ResultCache[
             MetricReference, FrozenOrderedSet[SemanticModelReference]
@@ -295,6 +299,40 @@ class MetricLookup:
         return self._result_cache_for_aggregation_time_dimension_specs.set_and_get(
             cache_key, intersection_result.as_frozen()
         )
+
+    def get_aggregation_time_dimension_specs_by_simple_metric(
+        self, metric_reference: MetricReference
+    ) -> Mapping[MetricReference, FrozenOrderedSet[TimeDimensionSpec]]:
+        """Return the aggregation time dimension specs of each simple metric used to compute the given metric.
+
+        Unlike `get_aggregation_time_dimension_specs`, which returns only the specs common to the inputs of a derived
+        metric, this shows which input is aggregated by which specs: each value is the simple metric's own
+        aggregation time dimension specs. For a conversion metric, both the base and the conversion inputs are
+        included, whereas `get_aggregation_time_dimension_specs` considers only the base input. Keys follow the
+        order in which the metric's inputs are declared, with nested inputs expanded in place.
+        """
+        cache = self._result_cache_for_aggregation_time_dimension_specs_by_simple_metric
+        cached_result = cache.get(metric_reference)
+        if cached_result is not None:
+            return cached_result.value
+
+        metric_inputs = MetricLookup.metric_inputs(
+            self.get_metric(metric_reference), include_conversion_metric_input=True
+        )
+        specs_by_simple_metric: Dict[MetricReference, FrozenOrderedSet[TimeDimensionSpec]] = {}
+        if len(metric_inputs) == 0:
+            specs_by_simple_metric[metric_reference] = self.get_aggregation_time_dimension_specs(
+                metric_reference
+            ).as_frozen()
+        else:
+            for metric_input in metric_inputs:
+                input_specs_by_simple_metric = self.get_aggregation_time_dimension_specs_by_simple_metric(
+                    MetricReference(metric_input.name)
+                )
+                for simple_metric_reference, specs in input_specs_by_simple_metric.items():
+                    specs_by_simple_metric.setdefault(simple_metric_reference, specs)
+
+        return cache.set_and_get(metric_reference, MappingProxyType(specs_by_simple_metric))
 
     def get_min_queryable_time_granularity(self, metric_reference: MetricReference) -> TimeGranularity:
         """The minimum grain that can be queried with this metric.
