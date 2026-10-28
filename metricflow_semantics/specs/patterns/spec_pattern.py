@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Iterable, Sequence
+from typing import TYPE_CHECKING, Iterable, Optional, Sequence
 
 from metricflow_semantics.model.semantics.element_filter import GroupByItemSetFilter
 
@@ -31,3 +31,10 @@ class SpecPattern(ABC):
         i.e. the filter can produce a superset of the elements that will match.
         """
         return GroupByItemSetFilter.create()
+
+    def with_leading_entity_link_dropped(self) -> Optional[SpecPattern]:
+        """Return the pattern without its first entity link, or `None` if it has less than 2 entity links.
+
+        The last entity link is kept as it is needed to identify the semantic model of the element.
+        """
+        return None

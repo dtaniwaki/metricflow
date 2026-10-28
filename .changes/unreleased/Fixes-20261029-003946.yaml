@@ -1,0 +1,6 @@
+kind: Fixes
+body: Resolve dimension names that are joined through entity links, such as `listing__user__home_state_latest`, in queries without metrics. The name is an alias of the name without the leading entity links (`user__home_state_latest`), which is also the name of the output column.
+time: 2026-10-29T00:39:46.842233+09:00
+custom:
+    Author: dtaniwaki
+    Issue: TBD

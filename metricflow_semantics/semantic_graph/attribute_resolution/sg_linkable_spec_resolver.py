@@ -82,6 +82,10 @@ class SemanticGraphGroupByItemSetResolver(GroupByItemSetResolver):
             tuple[Optional[GroupByItemSetFilter]], BaseGroupByItemSet
         ] = WeightedLruResultCache(weight_limit=resolved_result_cache_weight_limit)
 
+        self._result_cache_for_distinct_values_allowing_joins: WeightedLruResultCache[
+            tuple[Optional[GroupByItemSetFilter]], BaseGroupByItemSet
+        ] = WeightedLruResultCache(weight_limit=resolved_result_cache_weight_limit)
+
         self._result_cache_for_common_set: WeightedLruResultCache[
             _CommonSetCacheKey, BaseGroupByItemSet
         ] = WeightedLruResultCache(weight_limit=resolved_result_cache_weight_limit)
@@ -142,6 +146,23 @@ class SemanticGraphGroupByItemSetResolver(GroupByItemSetResolver):
         result = GroupByItemSet.create_from_trie(result_trie)
 
         return self._result_cache_for_distinct_values.set_and_get(
+            cache_key, result, weight=self._result_cache_weight(result)
+        )
+
+    @override
+    def get_set_for_distinct_values_query_allowing_joins(
+        self, set_filter: Optional[GroupByItemSetFilter] = None
+    ) -> BaseGroupByItemSet:
+        cache_key = (set_filter,)
+        cache_result = self._result_cache_for_distinct_values_allowing_joins.get(cache_key)
+        if cache_result:
+            return cache_result.value
+        tries_to_union: list[DunderNameTrie] = [
+            self._simple_resolver.resolve_trie(FrozenOrderedSet((local_model_node,)), set_filter).dunder_name_trie
+            for local_model_node in self._local_model_nodes
+        ]
+        result = GroupByItemSet.create_from_trie(MutableDunderNameTrie.union_merge_common(tries_to_union))
+        return self._result_cache_for_distinct_values_allowing_joins.set_and_get(
             cache_key, result, weight=self._result_cache_weight(result)
         )
 
