@@ -1,0 +1,45 @@
+---
+semantic_model:
+  name: product_source
+  description: Products with dimensions that declare `sort_by` and `label_by`.
+
+  node_relation:
+    schema_name: $source_schema
+    alias: product_table
+
+  dimensions:
+    - name: category_code
+      type: categorical
+      sort_by: category_rank
+      label_by: category_name
+    - name: category_rank
+      type: categorical
+    - name: category_name
+      type: categorical
+    - name: brand_code
+      type: categorical
+      label_by: brand_name
+    - name: brand_name
+      type: categorical
+    - name: region_code
+      type: categorical
+      label_by: region_label
+    - name: region_label
+      type: categorical
+    - name: store_code
+      type: categorical
+      label_by: store_name
+    - name: store_name
+      type: categorical
+    - name: shelf_code
+      type: categorical
+      sort_by: shelf_rank
+    - name: shelf_rank
+      type: categorical
+    - name: color
+      type: categorical
+
+  entities:
+    - name: product
+      type: primary
+      expr: product_id

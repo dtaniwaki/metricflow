@@ -1,0 +1,35 @@
+---
+table_snapshot:
+  table_name: product_table
+  column_definitions:
+    - name: product_id
+      type: STRING
+    - name: category_code
+      type: STRING
+    - name: category_rank
+      type: INT
+    - name: category_name
+      type: STRING
+    - name: brand_code
+      type: STRING
+    - name: brand_name
+      type: STRING
+    - name: region_code
+      type: STRING
+    - name: region_label
+      type: STRING
+    - name: store_code
+      type: STRING
+    - name: store_name
+      type: STRING
+    - name: shelf_code
+      type: STRING
+    - name: shelf_rank
+      type: INT
+    - name: color
+      type: STRING
+  rows:
+    - ["p1", "ELEC", "1", "Electronics", "b1", "Acme", "N", "North", "s1", "Main", "h1", "1", "red"]
+    - ["p2", "ELEC", "1", "Electronics", "b2", "Zenith", "N", "Northern", "s1", null, "h1", "2", "blue"]
+    - ["p3", "TOYS", "2", "Toys", "b1", "Acme", "S", "South", "s2", "Annex", "h2", "1", "red"]
+    - ["p4", "BOOK", "3", "Books", "b2", "Zenith", "S", "South", "s2", "Annex", "h2", "1", "green"]

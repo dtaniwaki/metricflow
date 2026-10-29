@@ -1,0 +1,33 @@
+---
+semantic_model:
+  name: sales_source
+  description: Sales of products.
+
+  node_relation:
+    schema_name: $source_schema
+    alias: sales_table
+
+  defaults:
+    agg_time_dimension: ds
+
+  measures:
+    - name: sales_amount
+      agg: sum
+
+  dimensions:
+    - name: ds
+      type: time
+      type_params:
+        time_granularity: day
+    - name: category_code
+      type: categorical
+    - name: brand_code
+      type: categorical
+
+  entities:
+    - name: sale
+      type: primary
+      expr: sale_id
+    - name: product
+      type: foreign
+      expr: product_id
