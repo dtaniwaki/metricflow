@@ -66,23 +66,32 @@ class SqlEngine(Enum):
     def supports_recursive_cte(self) -> bool:
         """Whether `WITH RECURSIVE` with `UNION` (not `UNION ALL`) can be used inside a subquery.
 
-        `UNION` is needed to stop on hierarchies whose parents form a cycle. Engines are `True` only when their
-        documentation states that this is allowed. Snowflake, BigQuery, Databricks, Redshift and ClickHouse document
-        recursive CTEs with `UNION ALL` only. Redshift also disallows `WITH RECURSIVE` in a subquery. Trino, Athena and
-        Vertica documentation does not state whether `UNION` is allowed.
+        On DuckDB and Postgres, `UNION` is what stops the recursion on hierarchies whose parents form a cycle. An engine
+        is `True` when its documentation states that this is allowed, or when the query has been run on it. DuckDB and
+        Postgres are documented. Trino is `True` because the query ran on Trino 484. Athena is `True` because the query
+        ran on Athena engine version 3 with the same results as Trino 484. Snowflake, BigQuery, Databricks, Redshift
+        and ClickHouse document recursive CTEs with `UNION ALL` only. Redshift also disallows `WITH RECURSIVE` in a
+        subquery. Vertica documentation does not state whether `UNION` is allowed.
+
+        Trino and Athena were both run, and both unroll the recursion to a fixed number of steps instead of stopping
+        when no new rows appear. A query fails with "Recursion depth limit exceeded" when the hierarchy is deeper than
+        the `max_recursion_depth` session property (10 by default) or has parents that form a cycle. On Trino, raising
+        the property does not help past the limit on the number of query stages.
         """
         if self is SqlEngine.POSTGRES:
             return True
         elif self is SqlEngine.DUCKDB:
+            return True
+        elif self is SqlEngine.TRINO:
+            return True
+        elif self is SqlEngine.ATHENA:
             return True
         elif (
             self is SqlEngine.SNOWFLAKE
             or self is SqlEngine.BIGQUERY
             or self is SqlEngine.DATABRICKS
             or self is SqlEngine.REDSHIFT
-            or self is SqlEngine.TRINO
             or self is SqlEngine.VERTICA
-            or self is SqlEngine.ATHENA
             or self is SqlEngine.CLICKHOUSE
         ):
             return False
