@@ -13,6 +13,7 @@ from metricflow_semantic_interfaces.type_enums import (
     EntityType,
     TimeGranularity,
 )
+from metricflow_semantic_interfaces.validations.validator_helpers import SemanticManifestValidationException
 from tests_metricflow_semantic_interfaces.example_project_configuration import (
     EXAMPLE_PROJECT_CONFIGURATION_YAML_CONFIG_FILE,
 )
@@ -425,6 +426,61 @@ def test_semantic_model_partition_dimension_parsing() -> None:
     assert len(semantic_model.dimensions) == 1
     dimension = semantic_model.dimensions[0]
     assert dimension.is_partition is True
+
+
+def test_semantic_model_dimension_sort_by_and_label_by_parsing() -> None:
+    """Test for parsing the optional sort_by and label_by of a dimension."""
+    yaml_contents = textwrap.dedent(
+        """\
+        semantic_model:
+          name: dimension_parsing_test
+          node_relation:
+            alias: source_table
+            schema_name: some_schema
+          dimensions:
+            - name: product_category_code
+              type: categorical
+              sort_by: product_category_rank
+              label_by: product_category_name
+            - name: product_category_rank
+              type: categorical
+            - name: product_category_name
+              type: categorical
+        """
+    )
+    file = YamlConfigFile(filepath="inline_for_test", contents=yaml_contents)
+
+    build_result = parse_yaml_files_to_semantic_manifest(files=[file, EXAMPLE_PROJECT_CONFIGURATION_YAML_CONFIG_FILE])
+
+    dimensions = build_result.semantic_manifest.semantic_models[0].dimensions
+    assert [(dimension.name, dimension.sort_by, dimension.label_by) for dimension in dimensions] == [
+        ("product_category_code", "product_category_rank", "product_category_name"),
+        ("product_category_rank", None, None),
+        ("product_category_name", None, None),
+    ]
+
+
+def test_semantic_model_dimension_sort_by_with_entity_link_is_rejected() -> None:
+    """The schema rejects a sort_by that is not a plain dimension name."""
+    yaml_contents = textwrap.dedent(
+        """\
+        semantic_model:
+          name: dimension_parsing_test
+          node_relation:
+            alias: source_table
+            schema_name: some_schema
+          dimensions:
+            - name: product_category_code
+              type: categorical
+              sort_by: product__product_category_rank
+        """
+    )
+    file = YamlConfigFile(filepath="inline_for_test", contents=yaml_contents)
+
+    build_result = parse_yaml_files_to_semantic_manifest(files=[file, EXAMPLE_PROJECT_CONFIGURATION_YAML_CONFIG_FILE])
+
+    assert build_result.issues.has_blocking_issues
+    assert "sort_by" in str(SemanticManifestValidationException(build_result.issues.all_issues))
 
 
 def test_semantic_model_time_dimension_parsing() -> None:

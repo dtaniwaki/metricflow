@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from typing import Dict, Generic, List, Sequence
 
 from metricflow_semantic_interfaces.protocols import SemanticManifestT, SemanticModel
@@ -24,6 +25,8 @@ class DimensionConsistencyRule(SemanticManifestValidationRule[SemanticManifestT]
 
     * Dimensions with the same name should be of the same type.
     * Dimensions with the same name should be either all partitions or not.
+    * Dimensions with the same name should not declare different `sort_by` values, and likewise for `label_by`.
+      A dimension that declares neither is compatible with one that declares them.
     """
 
     @staticmethod
@@ -63,7 +66,12 @@ class DimensionConsistencyRule(SemanticManifestValidationRule[SemanticManifestT]
 
             if dimension_invariant is None:
                 if update_invariant_dict:
-                    dimension_invariant = DimensionInvariants(dimension.type, dimension.is_partition or False)
+                    dimension_invariant = DimensionInvariants(
+                        type=dimension.type,
+                        is_partition=dimension.is_partition or False,
+                        sort_by=dimension.sort_by,
+                        label_by=dimension.label_by,
+                    )
                     dimension_to_invariant[dimension.reference] = dimension_invariant
                     continue
                 # TODO: Can't check for unknown dimensions easily as the name follows <id>__<name> format.
@@ -99,6 +107,29 @@ class DimensionConsistencyRule(SemanticManifestValidationRule[SemanticManifestT]
                         f" with is_partition as `{dimension_invariant.is_partition}` but got "
                         f"`{is_partition}``",
                     )
+                )
+            for attribute_name, invariant_value, value in (
+                ("sort_by", dimension_invariant.sort_by, dimension.sort_by),
+                ("label_by", dimension_invariant.label_by, dimension.label_by),
+            ):
+                if invariant_value is not None and value is not None and invariant_value != value:
+                    issues.append(
+                        ValidationError(
+                            context=context,
+                            message=f"In semantic model `{semantic_model.name}`, conflicting `{attribute_name}` for "
+                            f"dimension `{dimension.name}` - already declared in another semantic model as "
+                            f"`{invariant_value}` but got `{value}`",
+                        )
+                    )
+            if update_invariant_dict:
+                dimension_to_invariant[dimension.reference] = dataclasses.replace(
+                    dimension_invariant,
+                    sort_by=dimension_invariant.sort_by
+                    if dimension_invariant.sort_by is not None
+                    else dimension.sort_by,
+                    label_by=(
+                        dimension_invariant.label_by if dimension_invariant.label_by is not None else dimension.label_by
+                    ),
                 )
 
         return issues

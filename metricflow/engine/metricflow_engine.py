@@ -29,6 +29,10 @@ from metricflow_semantics.protocols.query_parameter import (
     MetricQueryParameter,
     OrderByQueryParameter,
 )
+from metricflow_semantics.query.dimension_value_attributes import (
+    DimensionValueAttributeSpecSet,
+    add_dimension_value_attributes,
+)
 from metricflow_semantics.query.query_parser import MetricFlowQueryParser
 from metricflow_semantics.specs.column_assoc import ColumnAssociationResolver
 from metricflow_semantics.specs.dunder_column_association_resolver import DunderColumnAssociationResolver
@@ -54,7 +58,7 @@ from metricflow.dataflow.optimizer.dataflow_optimizer_factory import DataflowPla
 from metricflow.dataset.convert_semantic_model import SemanticModelToDataSetConverter
 from metricflow.dataset.dataset_classes import DataSet
 from metricflow.dataset.semantic_model_adapter import SemanticModelDataSet
-from metricflow.engine.models import Dimension, Entity, Metric, SavedQuery, SearchableElement
+from metricflow.engine.models import Dimension, DimensionValue, Entity, Metric, SavedQuery, SearchableElement
 from metricflow.engine.time_source import ServerTimeSource
 from metricflow.execution.convert_to_execution_plan import ConvertToExecutionPlanResult
 from metricflow.execution.dataflow_to_execution import (
@@ -260,6 +264,8 @@ class MetricFlowQueryResult:
     sql: str
     result_df: Optional[MetricFlowDataTable] = None
     result_table: Optional[SqlTable] = None
+    # Set only if the query was extended with the `label_by` and `sort_by` dimensions of the queried dimensions.
+    dimension_value_attribute_spec_sets: tuple[DimensionValueAttributeSpecSet, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -270,6 +276,8 @@ class MetricFlowExplainResult:
     dataflow_plan: DataflowPlan
     convert_to_execution_plan_result: ConvertToExecutionPlanResult
     output_table: Optional[SqlTable] = None
+    # Set only if the query was extended with the `label_by` and `sort_by` dimensions of the queried dimensions.
+    dimension_value_attribute_spec_sets: tuple[DimensionValueAttributeSpecSet, ...] = ()
 
     @property
     def sql_statement(self) -> SqlStatement:
@@ -379,6 +387,41 @@ class AbstractMetricFlowEngine(ABC):
             A list of dimension values as string.
         """
         pass
+
+    def get_dimension_values_with_attributes(
+        self,
+        metric_names: list[str],
+        get_group_by_values: str,
+        time_constraint_start: Optional[datetime.datetime] = None,
+        time_constraint_end: Optional[datetime.datetime] = None,
+    ) -> list[DimensionValue]:
+        """Like `get_dimension_values`, but with the values of the `label_by` and `sort_by` of the dimension.
+
+        If the dimension declares `sort_by`, the values are ordered by it. Otherwise, they are ordered by value.
+        The attributes are only fetched when no metrics are given. Otherwise, they are not set. The default
+        implementation does not fetch them and returns only the values.
+
+        Args:
+            metric_names: Names of metrics that contain the group_by. Can be empty.
+            get_group_by_values: Name of group_by to get values from.
+            time_constraint_start: Get data for the start of this time range.
+            time_constraint_end: Get data for the end of this time range.
+
+        Returns:
+            The dimension values.
+
+        Raises:
+            InvalidQueryException: If a value has multiple distinct labels or sort keys.
+        """
+        return [
+            DimensionValue(value=value)
+            for value in self.get_dimension_values(
+                metric_names=metric_names,
+                get_group_by_values=get_group_by_values,
+                time_constraint_start=time_constraint_start,
+                time_constraint_end=time_constraint_end,
+            )
+        ]
 
     @abstractmethod
     def explain_get_dimension_values(
@@ -547,6 +590,7 @@ class MetricFlowEngine(AbstractMetricFlowEngine):
             sql=task_execution_result.sql,
             result_df=task_execution_result.df,
             result_table=explain_result.output_table,
+            dimension_value_attribute_spec_sets=explain_result.dimension_value_attribute_spec_sets,
         )
 
     @property
@@ -601,6 +645,20 @@ class MetricFlowEngine(AbstractMetricFlowEngine):
                 apply_group_by=mf_query_request.apply_group_by,
             ).query_spec
         logger.debug(LazyFormat("Parsed query", query_spec=query_spec))
+
+        dimension_value_attribute_spec_sets: tuple[DimensionValueAttributeSpecSet, ...] = ()
+        if (
+            mf_query_request.query_type == MetricFlowQueryType.DIMENSION_VALUES
+            and not query_spec.metric_specs
+            and not query_spec.min_max_only
+        ):
+            dimension_value_query_spec = add_dimension_value_attributes(
+                query_spec=query_spec,
+                dimension_lookup=self._semantic_manifest_lookup.semantic_model_lookup.dimension_lookup,
+                query_parser=self._query_parser,
+            )
+            query_spec = dimension_value_query_spec.query_spec
+            dimension_value_attribute_spec_sets = dimension_value_query_spec.attribute_spec_sets
 
         output_selection_specs: Optional[InstanceSpecSet] = None
         if mf_query_request.query_type == MetricFlowQueryType.DIMENSION_VALUES:
@@ -666,6 +724,7 @@ class MetricFlowEngine(AbstractMetricFlowEngine):
             query_spec=query_spec,
             dataflow_plan=dataflow_plan,
             convert_to_execution_plan_result=convert_to_execution_plan_result,
+            dimension_value_attribute_spec_sets=dimension_value_attribute_spec_sets,
         )
 
     @log_call(module_name=__name__, telemetry_reporter=_telemetry_reporter)
@@ -900,7 +959,24 @@ class MetricFlowEngine(AbstractMetricFlowEngine):
         time_constraint_start: Optional[datetime.datetime] = None,
         time_constraint_end: Optional[datetime.datetime] = None,
     ) -> list[str]:
-        # Run query
+        return [
+            dimension_value.value
+            for dimension_value in self.get_dimension_values_with_attributes(
+                metric_names=metric_names,
+                get_group_by_values=get_group_by_values,
+                time_constraint_start=time_constraint_start,
+                time_constraint_end=time_constraint_end,
+            )
+        ]
+
+    @log_call(module_name=__name__, telemetry_reporter=_telemetry_reporter)
+    def get_dimension_values_with_attributes(  # noqa: D102
+        self,
+        metric_names: list[str],
+        get_group_by_values: str,
+        time_constraint_start: Optional[datetime.datetime] = None,
+        time_constraint_end: Optional[datetime.datetime] = None,
+    ) -> list[DimensionValue]:
         query_result: MetricFlowQueryResult = self.query(
             MetricFlowQueryRequest.create(
                 metric_names=metric_names,
@@ -910,10 +986,56 @@ class MetricFlowEngine(AbstractMetricFlowEngine):
                 query_type=MetricFlowQueryType.DIMENSION_VALUES,
             )
         )
-        if query_result.result_df is None:
+        result_df = query_result.result_df
+        if result_df is None:
             return []
 
-        return sorted([str(val) for val in query_result.result_df.column_values_iterator(0)])
+        value_column_index = 0
+        label_column_index: Optional[int] = None
+        sort_column_index: Optional[int] = None
+        spec_sets = query_result.dimension_value_attribute_spec_sets
+        if len(spec_sets) > 0:
+            column_names = result_df.column_names
+            spec_set = spec_sets[0]
+            value_column_index = column_names.index(
+                self._column_association_resolver.resolve_spec(spec_set.dimension_spec).column_name
+            )
+            if spec_set.label_spec is not None:
+                label_column_index = column_names.index(
+                    self._column_association_resolver.resolve_spec(spec_set.label_spec).column_name
+                )
+            if spec_set.sort_spec is not None:
+                sort_column_index = column_names.index(
+                    self._column_association_resolver.resolve_spec(spec_set.sort_spec).column_name
+                )
+
+        dimension_values: list[DimensionValue] = []
+        value_to_dimension_value: dict[str, DimensionValue] = {}
+        for row in result_df.rows:
+            dimension_value = DimensionValue(
+                value=str(row[value_column_index]),
+                label=row[label_column_index] if label_column_index is not None else None,
+                sort_key=row[sort_column_index] if sort_column_index is not None else None,
+            )
+            existing_dimension_value = value_to_dimension_value.get(dimension_value.value)
+            if existing_dimension_value is None:
+                value_to_dimension_value[dimension_value.value] = dimension_value
+                dimension_values.append(dimension_value)
+            elif existing_dimension_value != dimension_value:
+                raise InvalidQueryException(
+                    LazyFormat(
+                        "A dimension value has multiple distinct labels or sort keys, but `label_by` and `sort_by` "
+                        "must have one value per dimension value.",
+                        dimension=get_group_by_values,
+                        dimension_value=dimension_value.value,
+                        first_attributes=existing_dimension_value,
+                        other_attributes=dimension_value,
+                    )
+                )
+
+        if sort_column_index is None:
+            dimension_values.sort(key=lambda dimension_value: dimension_value.value)
+        return dimension_values
 
     @log_call(module_name=__name__, telemetry_reporter=_telemetry_reporter)
     def explain_get_dimension_values(  # noqa: D102

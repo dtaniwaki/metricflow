@@ -180,7 +180,15 @@
                 "label": {
                     "type": "string"
                 },
+                "label_by": {
+                    "pattern": "(?!.*__).*^[a-z][a-z0-9_]*[a-z0-9]$",
+                    "type": "string"
+                },
                 "name": {
+                    "pattern": "(?!.*__).*^[a-z][a-z0-9_]*[a-z0-9]$",
+                    "type": "string"
+                },
+                "sort_by": {
                     "pattern": "(?!.*__).*^[a-z][a-z0-9_]*[a-z0-9]$",
                     "type": "string"
                 },

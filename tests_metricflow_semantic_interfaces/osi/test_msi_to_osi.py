@@ -972,6 +972,27 @@ class TestConverterIssues:  # noqa: D101
         assert result.issues[0].issue_type == ConverterIssueType.NATURAL_ENTITY_DROPPED
         assert result.issues[0].element_name == "user"
 
+    def test_dimension_sort_by_and_label_by_emit_issue(self) -> None:  # noqa: D102
+        sorted_dimension = _dimension("category_code")
+        sorted_dimension.sort_by = "category_rank"
+        labeled_dimension = _dimension("brand_code")
+        labeled_dimension.label_by = "brand_name"
+        sm = semantic_model_with_guaranteed_meta(
+            name="products",
+            dimensions=[
+                sorted_dimension,
+                labeled_dimension,
+                _dimension("category_rank"),
+                _dimension("brand_name"),
+            ],
+        )
+        result = MSIToOSIConverter().convert(_manifest(semantic_models=[sm]))
+
+        assert [(issue.issue_type, issue.element_name) for issue in result.issues] == [
+            (ConverterIssueType.DIMENSION_VALUE_COLUMNS_DROPPED, "category_code"),
+            (ConverterIssueType.DIMENSION_VALUE_COLUMNS_DROPPED, "brand_code"),
+        ]
+
     def test_cumulative_metric_emits_issue(self) -> None:  # noqa: D102
         sm = semantic_model_with_guaranteed_meta(
             name="orders",

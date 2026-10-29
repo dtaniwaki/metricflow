@@ -74,6 +74,16 @@ class MSIToOSIConverter:
 
         datasets = [self._convert_semantic_model(sm) for sm in manifest.semantic_models]
 
+        for semantic_model in manifest.semantic_models:
+            for dimension in semantic_model.dimensions:
+                if dimension.sort_by is not None or dimension.label_by is not None:
+                    issues.append(
+                        ConverterIssue(
+                            issue_type=ConverterIssueType.DIMENSION_VALUE_COLUMNS_DROPPED,
+                            element_name=dimension.name,
+                        )
+                    )
+
         entity_index, entity_issues = self._build_entity_index(manifest.semantic_models)
         issues.extend(entity_issues)
         relationships = self._build_relationships(entity_index)
