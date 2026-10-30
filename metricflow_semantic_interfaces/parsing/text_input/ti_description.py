@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
 
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
 from metricflow_semantic_interfaces.enum_extension import assert_values_exhausted
 from metricflow_semantic_interfaces.errors import InvalidQuerySyntax
 from metricflow_semantic_interfaces.naming.dundered import StructuredDunderedName
@@ -41,6 +42,7 @@ class ObjectBuilderItemDescription:
     time_granularity_name: Optional[str]
     date_part_name: Optional[str]
     descending: Optional[bool]
+    descendant_of_value: Optional[DescendantOfValue] = None
 
     def __post_init__(self) -> None:  # noqa: D105
         item_type = self.item_type
@@ -55,6 +57,13 @@ class ObjectBuilderItemDescription:
             pass
         else:
             assert_values_exhausted(item_type)
+
+        if self.descendant_of_value is not None and item_type is not QueryItemType.DIMENSION:
+            raise InvalidQuerySyntax(f"descendant_of is not supported for {item_type=}")
+        if self.descendant_of_value is not None and (
+            self.time_granularity_name is not None or self.date_part_name is not None
+        ):
+            raise InvalidQuerySyntax("descendant_of can't be combined with a time granularity or a date part.")
 
         # Check that metrics do not have an entity prefix or entity path.
         if item_type is QueryItemType.METRIC:
@@ -93,6 +102,7 @@ class ObjectBuilderItemDescription:
         time_granularity_name: Optional[str] = None,
         date_part_name: Optional[str] = None,
         descending: Optional[bool] = None,
+        descendant_of_value: Optional[DescendantOfValue] = None,
     ) -> ObjectBuilderItemDescription:
         """Create one with the same fields as self except the ones provided."""
         return ObjectBuilderItemDescription(
@@ -103,6 +113,7 @@ class ObjectBuilderItemDescription:
             date_part_name=date_part_name or self.date_part_name,
             group_by_for_metric_item=self.group_by_for_metric_item,
             descending=descending or self.descending,
+            descendant_of_value=self.descendant_of_value if descendant_of_value is None else descendant_of_value,
         )
 
     def with_descending_unset(self) -> ObjectBuilderItemDescription:
@@ -115,6 +126,7 @@ class ObjectBuilderItemDescription:
             date_part_name=self.date_part_name,
             group_by_for_metric_item=self.group_by_for_metric_item,
             descending=None,
+            descendant_of_value=self.descendant_of_value,
         )
 
 
@@ -149,3 +161,4 @@ class ObjectBuilderMethod(Enum):
     GRAIN = "grain"
     DATE_PART = "date_part"
     DESCENDING = "descending"
+    DESCENDANT_OF = "descendant_of"

@@ -12,6 +12,7 @@ from typing import FrozenSet, Optional, Sequence, Set, Type, TypeVar
 import more_itertools
 from metricflow_semantics.dag.id_prefix import StaticIdPrefix
 from metricflow_semantics.dag.mf_dag import DagId, DagNode, MetricFlowDag
+from metricflow_semantics.specs.where_filter.where_filter_spec import WhereFilterSpec
 from metricflow_semantics.toolkit.comparison_helpers import ComparisonOtherType
 from metricflow_semantics.toolkit.visitor import Visitable, VisitorOutputT
 
@@ -52,6 +53,11 @@ class DataflowPlanNode(DagNode["DataflowPlanNode"], Visitable, ABC):
         return DataflowPlan(
             sink_nodes=(self,), plan_id=DagId.from_id_prefix(id_prefix=StaticIdPrefix.DATAFLOW_PLAN_SUBGRAPH_PREFIX)
         )
+
+    @property
+    def where_filter_specs(self) -> Sequence[WhereFilterSpec]:
+        """The where filters that this node applies itself."""
+        return ()
 
     @abstractmethod
     def accept(self, visitor: DataflowPlanNodeVisitor[VisitorOutputT]) -> VisitorOutputT:

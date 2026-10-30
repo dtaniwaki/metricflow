@@ -19,13 +19,22 @@ from metricflow_semantic_interfaces.call_parameter_sets import (
     DimensionCallParameterSet,
     EntityCallParameterSet,
     MetricCallParameterSet,
+    ParseJinjaObjectException,
     TimeDimensionCallParameterSet,
 )
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
+from metricflow_semantic_interfaces.errors import InvalidQuerySyntax
 from metricflow_semantic_interfaces.implementations.base import HashableBaseModel
 from metricflow_semantic_interfaces.implementations.filters.where_filter import (
     PydanticWhereFilter,
     PydanticWhereFilterIntersection,
 )
+from metricflow_semantic_interfaces.parsing.text_input.ti_description import (
+    ObjectBuilderItemDescription,
+    ObjectBuilderMethod,
+    QueryItemType,
+)
+from metricflow_semantic_interfaces.parsing.text_input.ti_exceptions import InvalidBuilderMethodException
 from metricflow_semantic_interfaces.parsing.where_filter.jinja_object_parser import (
     JinjaObjectParser,
     QueryItemLocation,
@@ -313,3 +322,91 @@ def test_order_by_params() -> None:  # noqa
         entity_path=(EntityReference(element_name="entity"),),
         descending=True,
     )
+
+
+@pytest.mark.parametrize(
+    "value,expected_sql",
+    [("'X'", "'X'"), ("42", "42"), ("'a%b'", "'a%b'"), ("'a:b'", "'a:b'")],
+)
+def test_dimension_descendant_of(value: str, expected_sql: str) -> None:  # noqa: D103
+    param_sets = JinjaObjectParser.parse_call_parameter_sets(
+        "{{ Dimension('employee__employee_id').descendant_of(" + value + ") }}",
+        custom_granularity_names=(),
+        query_item_location=QueryItemLocation.WHERE_FILTER,
+    )
+    assert param_sets.dimension_call_parameter_sets == (
+        DimensionCallParameterSet(
+            dimension_reference=DimensionReference(element_name="employee_id"),
+            entity_path=(EntityReference(element_name="employee"),),
+            descendant_of_value=DescendantOfValue(sql=expected_sql),
+        ),
+    )
+
+
+def _parse_failure_cause(where: str, query_item_location: QueryItemLocation) -> BaseException:
+    with pytest.raises(ParseJinjaObjectException) as exception_info:
+        JinjaObjectParser.parse_call_parameter_sets(
+            where, custom_granularity_names=(), query_item_location=query_item_location
+        )
+    cause = exception_info.value.__cause__
+    assert cause is not None
+    return cause
+
+
+@pytest.mark.parametrize(
+    "value,expected_message",
+    [
+        ('"it\'s"', "single quote or a backslash"),
+        ("'a\\\\b'", "single quote or a backslash"),
+        ("True", "string or an integer"),
+        ("1.5", "string or an integer"),
+        ("None", "string or an integer"),
+        ("['X']", "string or an integer"),
+    ],
+)
+def test_descendant_of_rejects_values_that_cannot_be_written_into_sql(  # noqa: D103
+    value: str, expected_message: str
+) -> None:
+    cause = _parse_failure_cause(
+        "{{ Dimension('employee__employee_id').descendant_of(" + value + ") }}", QueryItemLocation.WHERE_FILTER
+    )
+    assert type(cause) is InvalidQuerySyntax
+    assert expected_message in str(cause)
+
+
+@pytest.mark.parametrize("query_item_location", [QueryItemLocation.NON_ORDER_BY, QueryItemLocation.ORDER_BY])
+def test_descendant_of_is_only_valid_in_where_filter(query_item_location: QueryItemLocation) -> None:  # noqa: D103
+    cause = _parse_failure_cause("{{ Dimension('employee__employee_id').descendant_of('X') }}", query_item_location)
+    assert type(cause) is InvalidBuilderMethodException
+    assert cause.invalid_builder_method is ObjectBuilderMethod.DESCENDANT_OF
+
+
+@pytest.mark.parametrize("builder", ["TimeDimension('employee__ds')", "Entity('employee')"])
+def test_descendant_of_is_only_valid_for_dimensions(builder: str) -> None:  # noqa: D103
+    cause = _parse_failure_cause("{{ " + builder + ".descendant_of('X') }}", QueryItemLocation.WHERE_FILTER)
+    assert type(cause) is InvalidQuerySyntax
+    assert "descendant_of is not supported" in str(cause)
+
+
+@pytest.mark.parametrize("method", ["grain('day')", "date_part('year')"])
+def test_descendant_of_rejects_grain_and_date_part(method: str) -> None:  # noqa: D103
+    cause = _parse_failure_cause(
+        "{{ Dimension('employee__ds').descendant_of('X')." + method + " }}", QueryItemLocation.WHERE_FILTER
+    )
+    assert type(cause) is InvalidQuerySyntax
+    assert "time granularity or a date part" in str(cause)
+
+
+@pytest.mark.parametrize("item_type", [QueryItemType.TIME_DIMENSION, QueryItemType.ENTITY, QueryItemType.METRIC])
+def test_item_description_rejects_descendant_of_for_non_dimensions(item_type: QueryItemType) -> None:  # noqa: D103
+    with pytest.raises(InvalidQuerySyntax, match="descendant_of is not supported"):
+        ObjectBuilderItemDescription(
+            item_type=item_type,
+            item_name="employee__employee_key",
+            entity_path=(),
+            group_by_for_metric_item=(),
+            time_granularity_name=None,
+            date_part_name=None,
+            descending=None,
+            descendant_of_value=DescendantOfValue(sql="'X'"),
+        )
