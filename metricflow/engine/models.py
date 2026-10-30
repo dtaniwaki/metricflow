@@ -7,6 +7,7 @@ from typing import List, Optional, Sequence, Tuple
 from metricflow_semantics.naming.linkable_spec_name import StructuredLinkableSpecName
 from metricflow_semantics.specs.dimension_spec import DimensionSpec
 
+from metricflow.data_table.column_types import CellValue
 from metricflow_semantic_interfaces.implementations.elements.dimension import PydanticDimensionTypeParams
 from metricflow_semantic_interfaces.protocols.dimension import (
     Dimension as SemanticManifestDimension,
@@ -33,6 +34,18 @@ from metricflow_semantic_interfaces.protocols.saved_query import (
 from metricflow_semantic_interfaces.protocols.where_filter import WhereFilterIntersection
 from metricflow_semantic_interfaces.references import EntityReference, SemanticModelReference
 from metricflow_semantic_interfaces.type_enums.entity_type import EntityType
+
+
+@dataclass(frozen=True)
+class DimensionValue:
+    """A value of a dimension with the values of the dimensions declared by its `label_by` and `sort_by`."""
+
+    # The value of the dimension converted to a string.
+    value: str
+    # The raw value of the `label_by` dimension for this value, or None if not declared.
+    label: Optional[CellValue] = None
+    # The raw value of the `sort_by` dimension for this value, or None if not declared.
+    sort_key: Optional[CellValue] = None
 
 
 class SearchableElement(ABC):

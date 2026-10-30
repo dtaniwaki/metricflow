@@ -366,6 +366,8 @@ dimension_schema = {
         "type_params": {"$ref": "dimension_type_params_schema"},
         "label": {"type": "string"},
         "config": {"$ref": "dimension_config_schema"},
+        "sort_by": {"type": "string", "pattern": TRANSFORM_OBJECT_NAME_PATTERN},
+        "label_by": {"type": "string", "pattern": TRANSFORM_OBJECT_NAME_PATTERN},
     },
     # dimension must have type_params if its a time dimension
     "anyOf": [{"not": {"$ref": "#/definitions/is-time-dimension"}}, {"required": ["type_params"]}],

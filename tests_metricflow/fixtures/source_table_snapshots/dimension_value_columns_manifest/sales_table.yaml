@@ -1,0 +1,21 @@
+---
+table_snapshot:
+  table_name: sales_table
+  column_definitions:
+    - name: sale_id
+      type: STRING
+    - name: product_id
+      type: STRING
+    - name: sales_amount
+      type: INT
+    - name: ds
+      type: TIME
+    - name: category_code
+      type: STRING
+    - name: brand_code
+      type: STRING
+  rows:
+    - ["s1", "p1", "10", "2020-01-01", "ELEC", "b1"]
+    - ["s2", "p2", "20", "2020-01-01", "TOYS", "b2"]
+    - ["s3", "p3", "30", "2020-01-02", "BOOK", "b1"]
+    - ["s4", "p1", "40", "2020-01-02", "ELEC", "b2"]
