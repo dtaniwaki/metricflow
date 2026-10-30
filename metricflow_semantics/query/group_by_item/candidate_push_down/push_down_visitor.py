@@ -49,6 +49,9 @@ from metricflow_semantics.query.issues.issues_base import (
     MetricFlowQueryResolutionIssueSet,
 )
 from metricflow_semantics.query.suggestion_generator import QueryItemSuggestionGenerator
+from metricflow_semantics.specs.patterns.leading_entity_link_dropping import (
+    iter_alias_patterns_for_no_metrics_query,
+)
 from metricflow_semantics.specs.patterns.none_date_part import NoneDatePartPattern
 from metricflow_semantics.specs.patterns.spec_pattern import SpecPattern
 from metricflow_semantics.toolkit.mf_logging.lazy_formattable import LazyFormat
@@ -530,6 +533,13 @@ class _PushDownGroupByItemCandidatesVisitor(GroupByItemResolutionNodeVisitor[Pus
             )
             logger.debug(LazyFormat("Retrieved candidates", candidate_group_by_items=candidate_group_by_items))
             candidates_after_filtering = candidate_group_by_items.filter_by_spec_patterns(self._source_spec_patterns)
+            if candidates_after_filtering.is_empty:
+                for alias_patterns in iter_alias_patterns_for_no_metrics_query(
+                    self._source_spec_patterns, self._semantic_manifest_lookup.metric_lookup
+                ):
+                    candidates_after_filtering = candidate_group_by_items.filter_by_spec_patterns(alias_patterns)
+                    if not candidates_after_filtering.is_empty:
+                        break
 
             if candidates_after_filtering.is_empty:
                 return PushDownResult(
