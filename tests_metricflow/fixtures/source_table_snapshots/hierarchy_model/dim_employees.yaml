@@ -1,0 +1,28 @@
+---
+table_snapshot:
+  table_name: dim_employees
+  column_definitions:
+    - name: employee_id
+      type: STRING
+    - name: manager_id
+      type: STRING
+    - name: employee_name
+      type: STRING
+  rows:
+    - ["e1", null, "Alice"]
+    - ["e2", "e1", "Bob"]
+    - ["e3", "e1", "Carol"]
+    - ["e4", "e2", "Dan"]
+    - ["e5", "e4", "Erin"]
+    - ["e6", "e3", "Frank"]
+    - ["e7", null, "Grace"]
+    - ["e8", "e7", "Heidi"]
+    - ["c1", "c2", "Ivan"]
+    - ["c2", "c1", "Judy"]
+    - ["c3", "c2", "Karl"]
+    - ["o1", "o0", "Mallory"]
+    - ["o2", "o1", "Niaj"]
+    - ["o3", "o2", "Olivia"]
+    - ["a%b", null, "Peggy"]
+    - ["a:b", "a%b", "Quentin"]
+    - ["x:y%z", "a:b", "Rupert"]

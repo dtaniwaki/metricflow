@@ -44,6 +44,10 @@ class WhereFilterNode(DataflowPlanNode):
     def id_prefix(cls) -> IdPrefix:  # noqa: D102
         return StaticIdPrefix.DATAFLOW_NODE_WHERE_CONSTRAINT_ID_PREFIX
 
+    @property
+    def where_filter_specs(self) -> Sequence[WhereFilterSpec]:  # noqa: D102
+        return self.filter_specs
+
     def accept(self, visitor: DataflowPlanNodeVisitor[VisitorOutputT]) -> VisitorOutputT:  # noqa: D102
         return visitor.visit_where_constraint_node(self)
 

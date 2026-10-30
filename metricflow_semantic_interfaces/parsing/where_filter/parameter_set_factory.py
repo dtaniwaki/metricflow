@@ -10,6 +10,7 @@ from metricflow_semantic_interfaces.call_parameter_sets import (
     ParseJinjaObjectException,
     TimeDimensionCallParameterSet,
 )
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
 from metricflow_semantic_interfaces.naming.dundered import StructuredDunderedName
 from metricflow_semantic_interfaces.naming.keywords import is_metric_time_name
 from metricflow_semantic_interfaces.references import (
@@ -27,6 +28,7 @@ class QueryItemLocation(Enum):
 
     ORDER_BY = "order_by"
     NON_ORDER_BY = "non_order_by"
+    WHERE_FILTER = "where_filter"
 
 
 class ParameterSetFactory:
@@ -113,7 +115,10 @@ class ParameterSetFactory:
 
     @staticmethod
     def create_dimension(
-        dimension_name: str, entity_path: Sequence[str] = (), descending: Optional[bool] = None
+        dimension_name: str,
+        entity_path: Sequence[str] = (),
+        descending: Optional[bool] = None,
+        descendant_of_value: Optional[DescendantOfValue] = None,
     ) -> DimensionCallParameterSet:
         """Gets called by Jinja when rendering {{ Dimension(...) }}."""
         group_by_item_name = StructuredDunderedName.parse_name(name=dimension_name, custom_granularity_names=())
@@ -127,6 +132,7 @@ class ParameterSetFactory:
                 tuple(EntityReference(element_name=arg) for arg in entity_path) + group_by_item_name.entity_links
             ),
             descending=descending,
+            descendant_of_value=descendant_of_value,
         )
 
     @staticmethod
@@ -159,7 +165,7 @@ class ParameterSetFactory:
     ) -> MetricCallParameterSet:
         """Gets called by Jinja when rendering {{ Metric(...) }}."""
         # Metric(...) syntax is required in saved_query.order_by to apply descending. Don't require group by there.
-        if query_item_location == QueryItemLocation.NON_ORDER_BY and not group_by:
+        if query_item_location is not QueryItemLocation.ORDER_BY and not group_by:
             raise ParseJinjaObjectException(
                 "`group_by` parameter is required for Metric in where filter. This is needed to determine 1) the "
                 "granularity to aggregate the metric to and 2) how to join the metric to the rest of the query."

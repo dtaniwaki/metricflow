@@ -33,6 +33,7 @@ from metricflow_semantics.test_helpers.semantic_manifest_yamls.dimension_value_c
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.extended_date_manifest import (
     EXTENDED_DATE_MANIFEST_ANCHOR,
 )
+from metricflow_semantics.test_helpers.semantic_manifest_yamls.hierarchy_manifest import HIERARCHY_MANIFEST_ANCHOR
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.join_types_manifest import JOIN_TYPES_MANIFEST_ANCHOR
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.multi_hop_join_manifest import (
     MULTI_HOP_JOIN_MANIFEST_ANCHOR,
@@ -156,6 +157,11 @@ class SemanticManifestSetup(Enum):
         semantic_manifest_name="dimension_value_columns_manifest",
         id_number_space=IdNumberSpace.for_block(13),
         yaml_file_dir=DIMENSION_VALUE_COLUMNS_MANIFEST_ANCHOR.directory,
+    )
+    HIERARCHY_MANIFEST = SemanticManifestSetupPropertySet(
+        semantic_manifest_name="hierarchy_manifest",
+        id_number_space=IdNumberSpace.for_block(14),
+        yaml_file_dir=HIERARCHY_MANIFEST_ANCHOR.directory,
     )
 
     @property
@@ -432,3 +438,11 @@ def name_edge_case_manifest(
 ) -> SemanticManifestLookup:
     """Manifest used to test name-related edge cases."""
     return mf_engine_test_fixture_mapping[SemanticManifestSetup.NAME_EDGE_CASE_MANIFEST].semantic_manifest_lookup
+
+
+@pytest.fixture(scope="session")
+def hierarchy_manifest(
+    mf_engine_test_fixture_mapping: Mapping[SemanticManifestSetup, MetricFlowEngineTestFixture]
+) -> SemanticManifestLookup:
+    """Manifest with a self-referencing dimension hierarchy."""
+    return mf_engine_test_fixture_mapping[SemanticManifestSetup.HIERARCHY_MANIFEST].semantic_manifest_lookup
