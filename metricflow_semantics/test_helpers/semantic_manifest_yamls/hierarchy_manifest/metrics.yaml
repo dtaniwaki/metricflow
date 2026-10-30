@@ -1,0 +1,15 @@
+---
+metric:
+  name: task_hours
+  description: Hours spent on tasks.
+  type: simple
+  type_params:
+    measure: task_hours
+---
+metric:
+  name: filtered_task_hours
+  description: Hours spent on tasks, limited to the reporting line below one employee.
+  type: simple
+  type_params:
+    measure: task_hours
+  filter: "{{ Dimension('employee__employee_key').descendant_of('e2') }}"

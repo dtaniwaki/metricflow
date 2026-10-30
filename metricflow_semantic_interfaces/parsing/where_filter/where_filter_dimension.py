@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 from typing_extensions import override
 
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
 from metricflow_semantic_interfaces.errors import InvalidQuerySyntax
 from metricflow_semantic_interfaces.protocols.protocol_hint import ProtocolHint
 from metricflow_semantic_interfaces.protocols.query_interface import (
@@ -28,6 +29,7 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
         self.entity_path = entity_path
         self.time_granularity_name: Optional[str] = None
         self.date_part_name: Optional[str] = None
+        self.descendant_of_value: Optional[DescendantOfValue] = None
 
     def grain(self, time_granularity: str) -> QueryInterfaceDimension:
         """The time granularity."""
@@ -41,6 +43,11 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
     def date_part(self, date_part_name: str) -> QueryInterfaceDimension:
         """Date part to extract from the dimension."""
         self.date_part_name = date_part_name
+        return self
+
+    def descendant_of(self, value: Union[str, int]) -> QueryInterfaceDimension:
+        """Filter to the given value and the values below it in the hierarchy of the dimension."""
+        self.descendant_of_value = DescendantOfValue.create(value)
         return self
 
 

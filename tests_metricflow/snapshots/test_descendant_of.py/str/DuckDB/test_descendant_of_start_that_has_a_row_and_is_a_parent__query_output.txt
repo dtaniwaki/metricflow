@@ -1,0 +1,8 @@
+test_name: test_descendant_of_start_that_has_a_row_and_is_a_parent
+test_filename: test_descendant_of.py
+---
+employee__employee_key      task_hours
+------------------------  ------------
+o1                                2048
+o2                                4096
+o3                                8192

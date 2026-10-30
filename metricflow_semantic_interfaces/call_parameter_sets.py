@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
 from metricflow_semantic_interfaces.references import (
     DimensionReference,
     EntityReference,
@@ -20,6 +21,7 @@ class DimensionCallParameterSet:
     entity_path: Tuple[EntityReference, ...]
     dimension_reference: DimensionReference
     descending: Optional[bool] = None
+    descendant_of_value: Optional[DescendantOfValue] = None
     # TODO: MFS Jinja allows grain and date part in Dimension(...). Should we allow them here, too, for consistency?
 
 
