@@ -1,0 +1,30 @@
+---
+semantic_model:
+  name: tasks_source
+  description: tasks_source
+
+  node_relation:
+    schema_name: $source_schema
+    alias: fct_tasks
+
+  defaults:
+    agg_time_dimension: ds
+
+  measures:
+    - name: task_hours
+      agg: sum
+
+  entities:
+    - name: employee
+      type: foreign
+      expr: employee_id
+
+  dimensions:
+    - name: ds
+      type: time
+      type_params:
+        time_granularity: day
+    - name: task_kind
+      type: categorical
+
+  primary_entity: task

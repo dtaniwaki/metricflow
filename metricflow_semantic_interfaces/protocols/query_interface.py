@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Optional, Protocol, Sequence
+from typing import Optional, Protocol, Sequence, Union
 
 
 class QueryInterfaceMetric(Protocol):
@@ -29,6 +29,11 @@ class QueryInterfaceDimension(Protocol):
     @abstractmethod
     def date_part(self, _date_part: str) -> QueryInterfaceDimension:
         """Date part to extract from the dimension."""
+        pass
+
+    @abstractmethod
+    def descendant_of(self, _value: Union[str, int]) -> QueryInterfaceDimension:
+        """Filter to the given value and the values below it in the hierarchy of the dimension."""
         pass
 
 

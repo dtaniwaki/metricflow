@@ -1,0 +1,6 @@
+kind: Features
+body: Allow descendant_of in where filters on Athena and Trino. The query was run on Trino and on Athena engine version 3. Both unroll the recursion, so a hierarchy deeper than max_recursion_depth (10 by default) or with parents that form a cycle fails with a recursion depth error
+time: 2026-10-29T12:03:29.450121+09:00
+custom:
+    Author: dtaniwaki
+    Issue: TBD

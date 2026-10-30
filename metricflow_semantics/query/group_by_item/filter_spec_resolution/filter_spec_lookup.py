@@ -10,6 +10,7 @@ from metricflow_semantics.query.group_by_item.path_prefixable import PathPrefixa
 from metricflow_semantics.query.group_by_item.resolution_path import MetricFlowQueryResolutionPath
 from metricflow_semantics.query.issues.issues_base import MetricFlowQueryResolutionIssueSet
 from metricflow_semantics.specs.patterns.spec_pattern import SpecPattern
+from metricflow_semantics.specs.where_filter.descendant_of import DescendantOfSource
 from metricflow_semantics.toolkit.merger import Mergeable
 from metricflow_semantics.toolkit.mf_logging.pretty_print import mf_pformat
 from metricflow_semantics.toolkit.string_helpers import mf_indent
@@ -85,6 +86,15 @@ class FilterSpecResolutionLookUp(Mergeable):
             )
 
         return resolution
+
+    def checked_descendant_of_source(self, resolved_spec_lookup_key: ResolvedSpecLookUpKey) -> DescendantOfSource:
+        """Returns the hierarchy source for a dimension in a filter that calls `descendant_of` on it."""
+        resolution = self._checked_resolution(resolved_spec_lookup_key=resolved_spec_lookup_key)
+        if resolution.descendant_of_source is None:
+            raise RuntimeError(
+                f"Expected a resolution with a descendant_of source, but got:\n{mf_pformat(resolution)}."
+            )
+        return resolution.descendant_of_source
 
     def checked_resolved_spec(self, resolved_spec_lookup_key: ResolvedSpecLookUpKey) -> AnnotatedSpec:
         """Returns the resolved spec for the given key.
@@ -168,6 +178,8 @@ class FilterSpecResolution:
     # Used for error messages.
     filter_location_path: MetricFlowQueryResolutionPath
     object_builder_str: str
+    # Set when the filter calls `descendant_of` on the dimension.
+    descendant_of_source: Optional[DescendantOfSource] = None
 
     def __post_init__(self) -> None:
         """Validation to ensure there is exactly one resolved spec for a FilterSpecResolution.

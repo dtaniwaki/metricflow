@@ -1,0 +1,8 @@
+test_name: test_multiple_descendant_of_in_one_filter
+test_filename: test_descendant_of.py
+---
+employee__employee_key      task_hours
+------------------------  ------------
+e1                                   1
+e3                                   4
+e6                                  32

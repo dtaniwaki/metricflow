@@ -1,0 +1,8 @@
+test_name: test_descendant_of_stops_on_cyclic_parents
+test_filename: test_descendant_of.py
+---
+employee__employee_key      task_hours
+------------------------  ------------
+c1                                 256
+c2                                 512
+c3                                1024
