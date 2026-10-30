@@ -1,22 +1,32 @@
 from __future__ import annotations
 
+import datetime
 import logging
 from collections.abc import Mapping
 
 import pytest
 from _pytest.fixtures import FixtureRequest
+from metricflow_semantics.dag.mf_dag import DagId
 from metricflow_semantics.errors.error_classes import (
     InvalidDescendantOfError,
     InvalidQueryException,
     UnsupportedEngineFeatureError,
 )
 from metricflow_semantics.test_helpers.config_helpers import MetricFlowTestConfiguration
+from metricflow_semantics.test_helpers.snapshot_helpers import (
+    assert_snapshot_text_equal,
+    make_schema_replacement_function,
+)
 
 from metricflow.dataflow.dataflow_plan import DataflowPlan
 from metricflow.protocols.sql_client import SqlClient, SqlEngine
 from metricflow.sql.optimizer.optimization_levels import SqlOptimizationLevel
+from metricflow.sql.render.athena import AthenaSqlPlanRenderer
+from metricflow.sql.render.sql_plan_renderer import SqlPlanRenderer
+from metricflow.sql.render.trino import TrinoSqlPlanRenderer
 from tests_metricflow.fixtures.manifest_fixtures import MetricFlowEngineTestFixture, SemanticManifestSetup
 from tests_metricflow.query_rendering.compare_rendered_query import render_and_check
+from tests_metricflow.snapshot_utils import _EXCLUDE_TABLE_ALIAS_REGEX, SQL_ENGINE_HEADER_NAME
 
 
 @pytest.mark.sql_engine_snapshot
@@ -73,9 +83,9 @@ _RECURSIVE_CTE_EXPECTED_TO_WORK = {
     SqlEngine.BIGQUERY: False,
     SqlEngine.DATABRICKS: False,
     SqlEngine.REDSHIFT: False,
-    SqlEngine.TRINO: False,
+    SqlEngine.TRINO: True,
     SqlEngine.VERTICA: False,
-    SqlEngine.ATHENA: False,
+    SqlEngine.ATHENA: True,
     SqlEngine.CLICKHOUSE: False,
 }
 
@@ -119,6 +129,54 @@ def test_descendant_of_by_engine(
     else:
         with pytest.raises(UnsupportedEngineFeatureError, match="descendant_of"):
             convert()
+
+
+@pytest.mark.sql_engine_snapshot
+@pytest.mark.duckdb_only
+@pytest.mark.parametrize(
+    "sql_engine,sql_plan_renderer",
+    [(SqlEngine.TRINO, TrinoSqlPlanRenderer()), (SqlEngine.ATHENA, AthenaSqlPlanRenderer())],
+    ids=["trino", "athena"],
+)
+def test_descendant_of_sql_for_trino_and_athena(
+    request: FixtureRequest,
+    mf_test_configuration: MetricFlowTestConfiguration,
+    mf_engine_test_fixture_mapping: Mapping[SemanticManifestSetup, MetricFlowEngineTestFixture],
+    sql_engine: SqlEngine,
+    sql_plan_renderer: SqlPlanRenderer,
+) -> None:
+    """Check the SQL that the Trino and Athena renderers write, as snapshots of engines the tests don't run."""
+    fixture = mf_engine_test_fixture_mapping[SemanticManifestSetup.HIERARCHY_MANIFEST]
+    dataflow_plan = fixture.dataflow_plan_builder.build_plan(
+        fixture.query_parser.parse_and_validate_query(
+            metric_names=["task_hours"],
+            group_by_names=["employee__employee_key", "metric_time__day"],
+            order_by_names=["employee__employee_key"],
+            limit=5,
+            time_constraint_start=datetime.datetime(2020, 1, 1),
+            time_constraint_end=datetime.datetime(2020, 1, 2),
+            where_constraint_strs=["{{ Dimension('employee__employee_key').descendant_of('e2') }}"],
+        ).query_spec,
+    )
+    sql_plan = fixture.dataflow_to_sql_converter.convert_to_sql_plan(
+        sql_engine_type=sql_engine,
+        dataflow_plan_node=dataflow_plan.sink_node,
+        sql_query_plan_id=DagId.from_str("plan0"),
+    ).sql_plan
+    assert_snapshot_text_equal(
+        request=request,
+        snapshot_configuration=mf_test_configuration,
+        group_id=sql_plan.__class__.__name__,
+        snapshot_id=sql_plan.dag_id.id_str,
+        snapshot_text=sql_plan_renderer.render_sql_plan(sql_plan).sql,
+        snapshot_file_extension=".sql",
+        incomparable_strings_replacement_function=make_schema_replacement_function(
+            system_schema=mf_test_configuration.mf_system_schema, source_schema=mf_test_configuration.mf_source_schema
+        ),
+        exclude_line_regex=_EXCLUDE_TABLE_ALIAS_REGEX,
+        additional_sub_directories_for_snapshots=(sql_engine.value,),
+        additional_header_fields={SQL_ENGINE_HEADER_NAME: sql_engine.value},
+    )
 
 
 @pytest.mark.duckdb_only
