@@ -1,0 +1,6 @@
+kind: Under the Hood
+body: Add `MetricLookup.get_aggregation_time_dimension_specs_by_simple_metric()`, which returns the aggregation time dimensions of each simple metric used to compute a metric. Unlike `get_aggregation_time_dimension_specs()`, which returns only the dimensions common to the inputs of a derived metric, it shows which input is aggregated by which dimensions.
+time: 2026-10-28T23:03:14.904716+09:00
+custom:
+    Author: dtaniwaki
+    Issue: TBD
