@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import typing
-from typing import Callable, FrozenSet, Optional, Sequence
+from typing import Callable, FrozenSet, Optional, Sequence, Union
 
 from typing_extensions import override
 
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
 from metricflow_semantic_interfaces.parsing.text_input.ti_description import (
     ObjectBuilderItemDescription,
     ObjectBuilderMethod,
@@ -207,6 +208,15 @@ class _RenderingClassForJinjaTemplate:
         self._update_current_description(
             builder_method=ObjectBuilderMethod.DATE_PART,
             new_description=self._current_description.create_modified(date_part_name=date_part_name),
+        )
+        return self
+
+    def descendant_of(self, value: Union[str, int]) -> _RenderingClassForJinjaTemplate:
+        self._update_current_description(
+            builder_method=ObjectBuilderMethod.DESCENDANT_OF,
+            new_description=self._current_description.create_modified(
+                descendant_of_value=DescendantOfValue.create(value)
+            ),
         )
         return self
 

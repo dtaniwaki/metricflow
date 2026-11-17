@@ -52,11 +52,14 @@ class JinjaObjectParser:
         query_item_location: QueryItemLocation,
     ) -> JinjaCallParameterSets:
         """Return the result of extracting the semantic objects referenced in the where SQL template string."""
-        valid_method_mapping = (
-            ConfiguredValidMethodMapping.DEFAULT_MAPPING_FOR_ORDER_BY
-            if query_item_location == QueryItemLocation.ORDER_BY
-            else ConfiguredValidMethodMapping.DEFAULT_MAPPING
-        )
+        if query_item_location == QueryItemLocation.ORDER_BY:
+            valid_method_mapping = ConfiguredValidMethodMapping.DEFAULT_MAPPING_FOR_ORDER_BY
+        elif query_item_location == QueryItemLocation.WHERE_FILTER:
+            valid_method_mapping = ConfiguredValidMethodMapping.DEFAULT_MAPPING_FOR_WHERE
+        elif query_item_location == QueryItemLocation.NON_ORDER_BY:
+            valid_method_mapping = ConfiguredValidMethodMapping.DEFAULT_MAPPING
+        else:
+            assert_values_exhausted(query_item_location)
         descriptions = JinjaObjectParser.parse_item_descriptions(
             where_sql_template, valid_method_mapping=valid_method_mapping
         )
@@ -91,6 +94,7 @@ class JinjaObjectParser:
                             dimension_name=description.item_name,
                             entity_path=description.entity_path,
                             descending=description.descending,
+                            descendant_of_value=description.descendant_of_value,
                         )
                     )
             elif item_type is QueryItemType.TIME_DIMENSION:

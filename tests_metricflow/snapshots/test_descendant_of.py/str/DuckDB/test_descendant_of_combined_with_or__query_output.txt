@@ -1,0 +1,8 @@
+test_name: test_descendant_of_combined_with_or
+test_filename: test_descendant_of.py
+---
+employee__employee_key      task_hours
+------------------------  ------------
+e4                                   8
+e5                                  16
+e8                                 128

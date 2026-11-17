@@ -54,7 +54,7 @@ class PydanticWhereFilter(PydanticCustomInputParser, HashableBaseModel):
         return JinjaObjectParser.parse_call_parameter_sets(
             where_sql_template=self.where_sql_template,
             custom_granularity_names=custom_granularity_names,
-            query_item_location=QueryItemLocation.NON_ORDER_BY,
+            query_item_location=QueryItemLocation.WHERE_FILTER,
         )
 
 

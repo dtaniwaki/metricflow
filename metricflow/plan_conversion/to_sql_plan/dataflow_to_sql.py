@@ -5,6 +5,7 @@ from collections.abc import Sequence, Set
 from typing import FrozenSet, Optional
 
 from metricflow_semantics.dag.mf_dag import DagId
+from metricflow_semantics.errors.error_classes import UnsupportedEngineFeatureError
 from metricflow_semantics.model.semantic_manifest_lookup import SemanticManifestLookup
 from metricflow_semantics.specs.column_assoc import ColumnAssociationResolver
 from metricflow_semantics.time.time_spine_source import TimeSpineSource
@@ -124,6 +125,7 @@ class DataflowToSqlPlanConverter:
                     nodes_to_convert_to_cte = self._get_nodes_to_convert_to_cte(dataflow_plan_node)
 
                 result = self.convert_using_specifics(
+                    sql_engine_type=sql_engine_type,
                     dataflow_plan_node=dataflow_plan_node,
                     sql_query_plan_id=sql_query_plan_id,
                     nodes_to_convert_to_cte=nodes_to_convert_to_cte,
@@ -144,6 +146,8 @@ class DataflowToSqlPlanConverter:
 
                 return result
 
+            except UnsupportedEngineFeatureError:
+                raise
             except Exception as e:
                 if attempted_optimization_level is optimization_levels_to_attempt[-1]:
                     logger.error(
@@ -163,8 +167,25 @@ class DataflowToSqlPlanConverter:
 
         raise RuntimeError("Should have returned a result or raised an exception in the loop.")
 
+    @staticmethod
+    def _check_no_descendant_of_filter(dataflow_plan_node: DataflowPlanNode, sql_engine_type: SqlEngine) -> None:
+        nodes_to_check = [dataflow_plan_node]
+        visited_nodes: set[DataflowPlanNode] = set()
+        while nodes_to_check:
+            node = nodes_to_check.pop()
+            if node in visited_nodes:
+                continue
+            visited_nodes.add(node)
+            if any(filter_spec.has_descendant_of for filter_spec in node.where_filter_specs):
+                raise UnsupportedEngineFeatureError(
+                    f"descendant_of in a where filter needs a recursive query that {sql_engine_type.value} is not "
+                    f"known to support, so it can't be used with this engine."
+                )
+            nodes_to_check.extend(node.parent_nodes)
+
     def convert_using_specifics(
         self,
+        sql_engine_type: SqlEngine,
         dataflow_plan_node: DataflowPlanNode,
         sql_query_plan_id: Optional[DagId],
         nodes_to_convert_to_cte: FrozenSet[DataflowPlanNode],
@@ -172,6 +193,9 @@ class DataflowToSqlPlanConverter:
         output_column_orderer: Optional[OutputColumnOrderer] = None,
     ) -> ConvertToSqlPlanResult:
         """Helper method to convert using specific options. Main use case are tests."""
+        if not sql_engine_type.supports_recursive_cte:
+            self._check_no_descendant_of_filter(dataflow_plan_node, sql_engine_type)
+
         logger.debug(
             LazyFormat("Converting to SQL", nodes_to_convert_to_cte=[node.node_id for node in nodes_to_convert_to_cte])
         )

@@ -1,0 +1,29 @@
+---
+semantic_model:
+  name: employees_source
+  description: employees_source
+
+  node_relation:
+    schema_name: $source_schema
+    alias: dim_employees
+
+  entities:
+    - name: employee
+      type: primary
+      expr: employee_id
+
+  dimensions:
+    - name: employee_key
+      type: categorical
+      expr: employee_id
+    - name: manager_key
+      type: categorical
+      expr: manager_id
+    - name: employee_name
+      type: categorical
+
+  hierarchies:
+    - name: reporting_line
+      levels:
+        - dimension: employee_key
+          parent: manager_key

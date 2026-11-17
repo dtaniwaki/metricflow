@@ -120,6 +120,7 @@ class WhereFilterSpecFactory:
                     where_sql=where_sql,
                     bind_parameters=SqlBindParameterSet(),
                     element_set=GroupByItemSet.create(*rendered_spec_tracker.rendered_specs),
+                    descendant_of_sources=tuple(rendered_spec_tracker.descendant_of_sources),
                 )
             )
 

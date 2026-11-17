@@ -1,0 +1,6 @@
+kind: Features
+body: Add descendant_of to where filters to select a hierarchy level value and the values below it. This adds a method to the QueryInterfaceDimension protocol, so external implementations of it need to add it
+time: 2026-10-29T01:22:48.711971+09:00
+custom:
+    Author: dtaniwaki
+    Issue: TBD

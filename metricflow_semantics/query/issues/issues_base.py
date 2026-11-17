@@ -3,8 +3,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Sequence, Sized, Tuple
+from typing import Sequence, Sized, Tuple, Type
 
+from metricflow_semantics.errors.error_classes import InvalidQueryException
 from metricflow_semantics.query.group_by_item.path_prefixable import PathPrefixable
 from metricflow_semantics.query.group_by_item.resolution_path import MetricFlowQueryResolutionPath
 from metricflow_semantics.query.resolver_inputs.base_resolver_inputs import MetricFlowQueryResolverInput
@@ -42,6 +43,11 @@ class MetricFlowQueryResolutionIssue(PathPrefixable, ABC):
         TBD: Make the associated_input a field of this class.
         """
         raise NotImplementedError
+
+    @property
+    def exception_class(self) -> Type[InvalidQueryException]:
+        """The exception type raised when this issue prevents the query from running."""
+        return InvalidQueryException
 
 
 @dataclass(frozen=True)

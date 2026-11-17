@@ -130,6 +130,12 @@ class UnmatchedExcludeDimensionsError(InvalidQueryException):
     pass
 
 
+class InvalidDescendantOfError(InvalidQueryException):
+    """Raised when a where filter uses descendant_of on a dimension that has no usable hierarchy."""
+
+    pass
+
+
 class RenderSqlTemplateException(InformativeUserError):
     """Exception thrown when there is an error rendering a SQL template."""
 

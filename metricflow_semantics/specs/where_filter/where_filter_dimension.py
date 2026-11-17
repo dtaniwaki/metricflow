@@ -12,12 +12,14 @@ from metricflow_semantics.query.group_by_item.filter_spec_resolution.filter_spec
 )
 from metricflow_semantics.specs.column_assoc import ColumnAssociationResolver
 from metricflow_semantics.specs.rendered_spec_tracker import RenderedSpecTracker
+from metricflow_semantics.specs.where_filter.descendant_of import render_descendant_of_sql
 from typing_extensions import override
 
 from metricflow_semantic_interfaces.call_parameter_sets import (
     DimensionCallParameterSet,
     TimeDimensionCallParameterSet,
 )
+from metricflow_semantic_interfaces.descendant_of_value import DescendantOfValue
 from metricflow_semantic_interfaces.protocols.protocol_hint import ProtocolHint
 from metricflow_semantic_interfaces.protocols.query_interface import (
     QueryInterfaceDimension,
@@ -46,6 +48,7 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
         entity_links: Sequence[EntityReference],
         time_granularity_name: Optional[str] = None,
         date_part: Optional[DatePart] = None,
+        descendant_of_value: Optional[DescendantOfValue] = None,
     ) -> None:
         self._column_association_resolver = column_association_resolver
         self._resolved_spec_lookup = resolved_spec_lookup
@@ -55,6 +58,7 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
         self._entity_links = tuple(entity_links)
         self._time_granularity_name = time_granularity_name
         self._date_part = date_part
+        self._descendant_of_value = descendant_of_value
 
     def grain(self, time_granularity_name: str) -> QueryInterfaceDimension:
         """The time granularity."""
@@ -67,6 +71,7 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
             entity_links=self._entity_links,
             time_granularity_name=time_granularity_name.lower(),
             date_part=self._date_part,
+            descendant_of_value=self._descendant_of_value,
         )
 
     def date_part(self, date_part_name: str) -> QueryInterfaceDimension:
@@ -80,6 +85,21 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
             entity_links=self._entity_links,
             time_granularity_name=self._time_granularity_name,
             date_part=DatePart(date_part_name.lower()),
+            descendant_of_value=self._descendant_of_value,
+        )
+
+    def descendant_of(self, value: Union[str, int]) -> QueryInterfaceDimension:
+        """Filter to the given value and the values below it in the hierarchy of the dimension."""
+        return WhereFilterDimension(
+            column_association_resolver=self._column_association_resolver,
+            resolved_spec_lookup=self._resolved_spec_lookup,
+            where_filter_location=self._where_filter_location,
+            rendered_spec_tracker=self._rendered_spec_tracker,
+            element_name=self._element_name,
+            entity_links=self._entity_links,
+            time_granularity_name=self._time_granularity_name,
+            date_part=self._date_part,
+            descendant_of_value=DescendantOfValue.create(value),
         )
 
     def descending(self, _is_descending: bool) -> QueryInterfaceDimension:
@@ -103,6 +123,7 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
             call_parameter_set = DimensionCallParameterSet(
                 entity_path=self._entity_links,
                 dimension_reference=DimensionReference(self._element_name),
+                descendant_of_value=self._descendant_of_value,
             )
 
         resolved_spec_key = ResolvedSpecLookUpKey(
@@ -114,7 +135,16 @@ class WhereFilterDimension(ProtocolHint[QueryInterfaceDimension]):
         self._rendered_spec_tracker.record_rendered_spec(resolved_spec)
         column_association = self._column_association_resolver.resolve_spec(resolved_spec.spec)
 
-        return column_association.column_name
+        if self._descendant_of_value is None:
+            return column_association.column_name
+
+        descendant_of_source = self._resolved_spec_lookup.checked_descendant_of_source(resolved_spec_key)
+        self._rendered_spec_tracker.record_descendant_of_source(descendant_of_source)
+        return render_descendant_of_sql(
+            column_name=column_association.column_name,
+            source=descendant_of_source,
+            value_sql=self._descendant_of_value.sql,
+        )
 
 
 class WhereFilterDimensionFactory(ProtocolHint[QueryInterfaceDimensionFactory]):

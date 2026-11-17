@@ -1,0 +1,8 @@
+test_name: test_descendant_of_includes_start_and_reaches_grandchildren
+test_filename: test_descendant_of.py
+---
+employee__employee_key
+------------------------
+e2
+e4
+e5

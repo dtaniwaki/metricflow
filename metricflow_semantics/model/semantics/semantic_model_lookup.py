@@ -6,6 +6,7 @@ from typing import Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 from metricflow_semantics.errors.error_classes import InvalidSemanticModelError
 from metricflow_semantics.model.semantics.dimension_lookup import DimensionLookup
+from metricflow_semantics.model.semantics.hierarchy_lookup import HierarchyLookup
 from metricflow_semantics.naming.linkable_spec_name import StructuredLinkableSpecName
 from metricflow_semantics.specs.dimension_spec import DimensionSpec
 from metricflow_semantics.specs.entity_spec import EntitySpec
@@ -55,6 +56,7 @@ class SemanticModelLookup:
             self._add_semantic_model(semantic_model)
 
         self._dimension_lookup = DimensionLookup(sorted_semantic_models)
+        self._hierarchy_lookup = HierarchyLookup(sorted_semantic_models)
 
     @cached_property
     def custom_granularity_names(self) -> Tuple[str, ...]:
@@ -155,6 +157,10 @@ class SemanticModelLookup:
     @property
     def dimension_lookup(self) -> DimensionLookup:  # noqa: D102
         return self._dimension_lookup
+
+    @property
+    def hierarchy_lookup(self) -> HierarchyLookup:  # noqa: D102
+        return self._hierarchy_lookup
 
     @cached_property
     def model_reference_to_model(self) -> Mapping[SemanticModelReference, SemanticModel]:  # noqa: D102

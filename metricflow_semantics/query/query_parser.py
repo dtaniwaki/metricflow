@@ -380,10 +380,19 @@ class MetricFlowQueryParser:
         self,
         input_to_issue_set: InputToIssueSetMapping,
     ) -> None:
-        if not input_to_issue_set.merged_issue_set.has_errors:
+        merged_issue_set = input_to_issue_set.merged_issue_set
+        if not merged_issue_set.has_errors:
             return
 
-        raise InvalidQueryException(self.generate_error_message(input_to_issue_set=input_to_issue_set))
+        exception_class = next(
+            (
+                error.exception_class
+                for error in merged_issue_set.errors
+                if error.exception_class is not InvalidQueryException
+            ),
+            InvalidQueryException,
+        )
+        raise exception_class(self.generate_error_message(input_to_issue_set=input_to_issue_set))
 
     @mf_log_duration()
     def parse_and_validate_query(

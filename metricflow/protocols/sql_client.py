@@ -62,6 +62,33 @@ class SqlEngine(Enum):
         else:
             assert_values_exhausted(self)
 
+    @property
+    def supports_recursive_cte(self) -> bool:
+        """Whether `WITH RECURSIVE` with `UNION` (not `UNION ALL`) can be used inside a subquery.
+
+        `UNION` is needed to stop on hierarchies whose parents form a cycle. Engines are `True` only when their
+        documentation states that this is allowed. Snowflake, BigQuery, Databricks, Redshift and ClickHouse document
+        recursive CTEs with `UNION ALL` only. Redshift also disallows `WITH RECURSIVE` in a subquery. Trino, Athena and
+        Vertica documentation does not state whether `UNION` is allowed.
+        """
+        if self is SqlEngine.POSTGRES:
+            return True
+        elif self is SqlEngine.DUCKDB:
+            return True
+        elif (
+            self is SqlEngine.SNOWFLAKE
+            or self is SqlEngine.BIGQUERY
+            or self is SqlEngine.DATABRICKS
+            or self is SqlEngine.REDSHIFT
+            or self is SqlEngine.TRINO
+            or self is SqlEngine.VERTICA
+            or self is SqlEngine.ATHENA
+            or self is SqlEngine.CLICKHOUSE
+        ):
+            return False
+        else:
+            assert_values_exhausted(self)
+
 
 class SqlClient(Protocol):
     """Base interface for SqlClient instances used inside MetricFlow.

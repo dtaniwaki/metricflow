@@ -23,6 +23,20 @@ class ConfiguredValidMethodMapping:
         QueryItemType.TIME_DIMENSION: frozenset({ObjectBuilderMethod.DESCENDING}),
     }
 
+    DEFAULT_MAPPING_FOR_WHERE: ValidMethodMapping = {
+        QueryItemType.METRIC: frozenset(),
+        QueryItemType.ENTITY: frozenset(),
+        QueryItemType.DIMENSION: frozenset(
+            {
+                ObjectBuilderMethod.DESCENDING,
+                ObjectBuilderMethod.GRAIN,
+                ObjectBuilderMethod.DATE_PART,
+                ObjectBuilderMethod.DESCENDANT_OF,
+            }
+        ),
+        QueryItemType.TIME_DIMENSION: frozenset(),
+    }
+
     DEFAULT_MAPPING: ValidMethodMapping = {
         QueryItemType.METRIC: frozenset(),
         QueryItemType.ENTITY: frozenset(),

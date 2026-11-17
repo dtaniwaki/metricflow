@@ -1,0 +1,7 @@
+test_name: test_descendant_of_value_with_percent_or_colon[colon]
+test_filename: test_descendant_of.py
+---
+employee__employee_key      task_hours
+------------------------  ------------
+a:b                              32768
+x:y%z                            65536

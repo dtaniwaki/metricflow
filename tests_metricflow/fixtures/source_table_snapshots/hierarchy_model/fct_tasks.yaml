@@ -1,0 +1,30 @@
+---
+table_snapshot:
+  table_name: fct_tasks
+  column_definitions:
+    - name: ds
+      type: TIME
+    - name: employee_id
+      type: STRING
+    - name: task_kind
+      type: STRING
+    - name: task_hours
+      type: INT
+  rows:
+    - ["2020-01-01", "e1", "plan", 1]
+    - ["2020-01-01", "e2", "plan", 2]
+    - ["2020-01-01", "e3", "build", 4]
+    - ["2020-01-01", "e4", "build", 8]
+    - ["2020-01-02", "e5", "plan", 16]
+    - ["2020-01-02", "e6", "build", 32]
+    - ["2020-01-02", "e7", "plan", 64]
+    - ["2020-01-02", "e8", "build", 128]
+    - ["2020-01-02", "c1", "plan", 256]
+    - ["2020-01-02", "c2", "build", 512]
+    - ["2020-01-02", "c3", "plan", 1024]
+    - ["2020-01-02", "o1", "plan", 2048]
+    - ["2020-01-02", "o2", "build", 4096]
+    - ["2020-01-02", "o3", "plan", 8192]
+    - ["2020-01-02", "a%b", "plan", 16384]
+    - ["2020-01-02", "a:b", "build", 32768]
+    - ["2020-01-02", "x:y%z", "plan", 65536]

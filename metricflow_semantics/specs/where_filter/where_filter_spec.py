@@ -10,6 +10,7 @@ from metricflow_semantics.semantic_graph.attribute_resolution.group_by_item_set 
 from metricflow_semantics.specs.instance_spec import LinkableInstanceSpec
 from metricflow_semantics.specs.linkable_spec_set import LinkableSpecSet
 from metricflow_semantics.specs.spec_set import InstanceSpecSet
+from metricflow_semantics.specs.where_filter.descendant_of import DescendantOfSource
 from metricflow_semantics.sql.sql_bind_parameters import SqlBindParameterSet
 
 from metricflow_semantic_interfaces.dataclass_serialization import SerializableDataclass
@@ -48,6 +49,13 @@ class WhereFilterSpec(SerializableDataclass):
     where_sql: str
     bind_parameters: SqlBindParameterSet
     element_set: GroupByItemSet
+    # The hierarchies that `descendant_of` conditions in the SQL read, which need a recursive subquery.
+    descendant_of_sources: Tuple[DescendantOfSource, ...] = ()
+
+    @cached_property
+    def has_descendant_of(self) -> bool:
+        """Returns true if the SQL has a `descendant_of` condition, which needs a recursive subquery."""
+        return len(self.descendant_of_sources) > 0
 
     @cached_property
     def linkable_spec_set(self) -> LinkableSpecSet:

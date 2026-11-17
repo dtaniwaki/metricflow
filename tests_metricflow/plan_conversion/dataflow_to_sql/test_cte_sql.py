@@ -19,6 +19,7 @@ from metricflow.dataflow.dataflow_plan import (
 from metricflow.dataflow.dataflow_plan_analyzer import DataflowPlanAnalyzer
 from metricflow.dataflow.nodes.filter_elements import SelectorNode
 from metricflow.plan_conversion.to_sql_plan.dataflow_to_sql import DataflowToSqlPlanConverter
+from metricflow.protocols.sql_client import SqlEngine
 from metricflow.sql.optimizer.optimization_levels import SqlGenerationOptionSet, SqlOptimizationLevel
 from metricflow.sql.render.sql_plan_renderer import DefaultSqlPlanRenderer
 from tests_metricflow.fixtures.manifest_fixtures import MetricFlowEngineTestFixture, SemanticManifestSetup
@@ -39,6 +40,7 @@ def convert_and_check(
         SqlOptimizationLevel.O5, use_column_alias_in_group_by=False
     ).optimizers
     conversion_result = dataflow_to_sql_converter.convert_using_specifics(
+        sql_engine_type=SqlEngine.DUCKDB,
         dataflow_plan_node=node,
         sql_query_plan_id=None,
         optimizers=optimizers,
@@ -49,6 +51,7 @@ def convert_and_check(
 
     # Generate with CTEs
     conversion_result = dataflow_to_sql_converter.convert_using_specifics(
+        sql_engine_type=SqlEngine.DUCKDB,
         dataflow_plan_node=node,
         sql_query_plan_id=None,
         optimizers=optimizers,

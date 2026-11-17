@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 from collections import defaultdict
-from typing import Dict, List, Optional, Sequence, Set, Union
+from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from metricflow_semantics.model.semantic_manifest_lookup import SemanticManifestLookup
 from metricflow_semantics.naming.object_builder_str import ObjectBuilderNameConverter
@@ -21,7 +21,7 @@ from metricflow_semantics.query.group_by_item.filter_spec_resolution.filter_spec
     PatternAssociationForWhereFilterGroupByItem,
     ResolvedSpecLookUpKey,
 )
-from metricflow_semantics.query.group_by_item.group_by_item_resolver import GroupByItemResolver
+from metricflow_semantics.query.group_by_item.group_by_item_resolver import GroupByItemResolution, GroupByItemResolver
 from metricflow_semantics.query.group_by_item.resolution_dag.dag import GroupByItemResolutionDag
 from metricflow_semantics.query.group_by_item.resolution_dag.input_metric_location import InputMetricDefinitionLocation
 from metricflow_semantics.query.group_by_item.resolution_dag.resolution_nodes.base_node import (
@@ -41,15 +41,21 @@ from metricflow_semantics.query.group_by_item.resolution_dag.resolution_nodes.si
     SimpleMetricGroupByItemSourceNode,
 )
 from metricflow_semantics.query.group_by_item.resolution_path import MetricFlowQueryResolutionPath
+from metricflow_semantics.query.issues.filter_spec_resolver.invalid_descendant_of import InvalidDescendantOfIssue
 from metricflow_semantics.query.issues.filter_spec_resolver.invalid_where import WhereFilterParsingIssue
 from metricflow_semantics.query.issues.issues_base import (
     MetricFlowQueryResolutionIssueSet,
 )
+from metricflow_semantics.specs.where_filter.descendant_of import DescendantOfSource
 from metricflow_semantics.toolkit.mf_logging.lazy_formattable import LazyFormat
 from metricflow_semantics.toolkit.performance_helpers import mf_log_duration
 from typing_extensions import override
 
-from metricflow_semantic_interfaces.call_parameter_sets import JinjaCallParameterSets, MetricCallParameterSet
+from metricflow_semantic_interfaces.call_parameter_sets import (
+    DimensionCallParameterSet,
+    JinjaCallParameterSets,
+    MetricCallParameterSet,
+)
 from metricflow_semantic_interfaces.implementations.filters.where_filter import PydanticWhereFilterIntersection
 from metricflow_semantic_interfaces.protocols import WhereFilter
 from metricflow_semantic_interfaces.references import EntityReference
@@ -321,6 +327,35 @@ class _ResolveWhereFilterSpecVisitor(GroupByItemResolutionNodeVisitor[FilterSpec
 
         return where_filters_and_locations
 
+    def _resolve_descendant_of_source(
+        self,
+        call_parameter_set: DimensionCallParameterSet,
+        group_by_item_resolution: GroupByItemResolution,
+        object_builder_str: str,
+        issue_set: MetricFlowQueryResolutionIssueSet,
+        resolution_path: MetricFlowQueryResolutionPath,
+    ) -> Tuple[Optional[DescendantOfSource], MetricFlowQueryResolutionIssueSet]:
+        """Find the hierarchy for a dimension that a filter calls `descendant_of` on."""
+        annotated_specs = group_by_item_resolution.linkable_element_set.annotated_specs
+        if issue_set.has_errors or len(annotated_specs) != 1:
+            return None, issue_set
+
+        lookup_result = self._manifest_lookup.semantic_model_lookup.hierarchy_lookup.find_descendant_of_source(
+            semantic_model_names=annotated_specs[0].origin_semantic_model_names,
+            dimension_name=call_parameter_set.dimension_reference.element_name,
+        )
+        if lookup_result.source is not None:
+            return lookup_result.source, issue_set
+
+        assert lookup_result.failure_reason is not None
+        return None, issue_set.add_issue(
+            InvalidDescendantOfIssue.from_parameters(
+                object_builder_str=object_builder_str,
+                failure_reason=lookup_result.failure_reason,
+                query_resolution_path=resolution_path,
+            )
+        )
+
     def _resolve_specs_for_where_filters(
         self,
         current_node: GroupByItemResolutionNode,
@@ -400,6 +435,19 @@ class _ResolveWhereFilterSpecVisitor(GroupByItemResolutionNodeVisitor[FilterSpec
                 path_prefix = MetricFlowQueryResolutionPath(
                     resolution_path_nodes=resolution_path.resolution_path_nodes[:-1]
                 )
+                issue_set = group_by_item_resolution.issue_set.with_path_prefix(path_prefix)
+                descendant_of_source: Optional[DescendantOfSource] = None
+                call_parameter_set = group_by_item_in_where_filter.call_parameter_set
+                if type(call_parameter_set) is DimensionCallParameterSet and (
+                    call_parameter_set.descendant_of_value is not None
+                ):
+                    descendant_of_source, issue_set = self._resolve_descendant_of_source(
+                        call_parameter_set=call_parameter_set,
+                        group_by_item_resolution=group_by_item_resolution,
+                        object_builder_str=group_by_item_in_where_filter.object_builder_str,
+                        issue_set=issue_set,
+                        resolution_path=resolution_path,
+                    )
                 resolutions.append(
                     FilterSpecResolution(
                         lookup_key=ResolvedSpecLookUpKey(
@@ -412,8 +460,9 @@ class _ResolveWhereFilterSpecVisitor(GroupByItemResolutionNodeVisitor[FilterSpec
                             where_filters=list(where_filters_and_locations[filter_location])
                         ),
                         spec_pattern=group_by_item_in_where_filter.spec_pattern,
-                        issue_set=group_by_item_resolution.issue_set.with_path_prefix(path_prefix),
+                        issue_set=issue_set,
                         object_builder_str=group_by_item_in_where_filter.object_builder_str,
+                        descendant_of_source=descendant_of_source,
                     )
                 )
 
