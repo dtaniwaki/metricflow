@@ -23,6 +23,7 @@ from metricflow_semantics.semantic_graph.attribute_resolution.group_by_item_set 
     GroupByItemSet,
 )
 from metricflow_semantics.semantic_graph.lookups.manifest_object_lookup import ManifestObjectLookup
+from metricflow_semantics.specs.patterns.spec_pattern import SpecPattern
 from metricflow_semantics.specs.spec_set import group_specs_by_type
 from metricflow_semantics.specs.time_dimension_spec import TimeDimensionSpec
 from metricflow_semantics.toolkit.cache.result_cache import ResultCache
@@ -97,6 +98,20 @@ class MetricLookup:
     ) -> BaseGroupByItemSet:
         """Return the reachable linkable elements for a dimension values query with no metrics."""
         return self._group_by_item_set_resolver.get_set_for_distinct_values_query(set_filter)
+
+    def matches_distinct_values_query_items_allowing_joins(self, spec_patterns: Sequence[SpecPattern]) -> bool:
+        """Return true if the patterns match an item that a query with metrics could use, as if joins were allowed.
+
+        A distinct values query can not use all of these items, so this is only meant for checking if a name is valid.
+        """
+        set_filter = GroupByItemSetFilter.merge_iterable(
+            spec_pattern.element_pre_filter for spec_pattern in spec_patterns
+        )
+        return not (
+            self._group_by_item_set_resolver.get_set_for_distinct_values_query_allowing_joins(set_filter)
+            .filter_by_spec_patterns(spec_patterns)
+            .is_empty
+        )
 
     def get_derived_from_semantic_models(self, metric_reference: MetricReference) -> OrderedSet[SemanticModelReference]:
         """Return the semantic models that the given metric is derived from.

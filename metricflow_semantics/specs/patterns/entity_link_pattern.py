@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, FrozenSet, Iterable, List, Optional, Sequence, Tuple
 
@@ -153,6 +153,15 @@ class EntityLinkPattern(SpecPattern):
                 matching_specs.append(spec)
 
         return matching_specs
+
+    @override
+    def with_leading_entity_link_dropped(self) -> Optional[SpecPattern]:
+        entity_links = self.parameter_set.entity_links
+        if ParameterSetField.ENTITY_LINKS not in self.parameter_set.fields_to_compare:
+            return None
+        if entity_links is None or len(entity_links) < 2:
+            return None
+        return replace(self, parameter_set=replace(self.parameter_set, entity_links=entity_links[1:]))
 
     @property
     @override
