@@ -53,6 +53,8 @@ class PydanticDimension(HashableBaseModel, ModelWithMetadataParsing):
     metadata: Optional[PydanticMetadata]
     label: Optional[str] = None
     config: Optional[PydanticSemanticLayerElementConfig]
+    sort_by: Optional[str] = None
+    label_by: Optional[str] = None
 
     @property
     def reference(self) -> DimensionReference:  # noqa: D102

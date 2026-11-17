@@ -123,3 +123,18 @@ class Dimension(Protocol):
     @abstractmethod
     def config(self) -> Optional[SemanticLayerElementConfig]:  # noqa: D102
         pass
+
+    @property
+    @abstractmethod
+    def sort_by(self) -> Optional[str]:
+        """Name of the dimension in the same semantic model whose values define the sort order of this dimension."""
+        pass
+
+    @property
+    @abstractmethod
+    def label_by(self) -> Optional[str]:
+        """Name of the dimension in the same semantic model whose values are the display names of this one's values.
+
+        This differs from `label`, which is the display name of the dimension itself.
+        """
+        pass

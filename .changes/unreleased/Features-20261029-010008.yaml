@@ -1,0 +1,6 @@
+kind: Features
+body: Add `sort_by` and `label_by` to dimensions, which adds them to the `Dimension` protocol. The dimension values query returns the label and sort key of each value and orders the values by `sort_by`.
+time: 2026-10-29T01:00:08.633611+09:00
+custom:
+    Author: dtaniwaki
+    Issue: "2140"

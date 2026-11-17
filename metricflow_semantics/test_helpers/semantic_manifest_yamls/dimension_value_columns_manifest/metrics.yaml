@@ -1,0 +1,7 @@
+---
+metric:
+  name: sales
+  description: Total sales amount.
+  type: simple
+  type_params:
+    measure: sales_amount

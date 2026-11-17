@@ -27,6 +27,9 @@ from metricflow_semantics.test_helpers.semantic_manifest_yamls.data_warehouse_va
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.derived_metrics_manifest import (
     DERIVED_METRICS_MANIFEST_ANCHOR,
 )
+from metricflow_semantics.test_helpers.semantic_manifest_yamls.dimension_value_columns_manifest import (
+    DIMENSION_VALUE_COLUMNS_MANIFEST_ANCHOR,
+)
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.extended_date_manifest import (
     EXTENDED_DATE_MANIFEST_ANCHOR,
 )
@@ -148,6 +151,11 @@ class SemanticManifestSetup(Enum):
         semantic_manifest_name="derived_metrics_manifest",
         id_number_space=IdNumberSpace.for_block(12),
         yaml_file_dir=DERIVED_METRICS_MANIFEST_ANCHOR.directory,
+    )
+    DIMENSION_VALUE_COLUMNS_MANIFEST = SemanticManifestSetupPropertySet(
+        semantic_manifest_name="dimension_value_columns_manifest",
+        id_number_space=IdNumberSpace.for_block(13),
+        yaml_file_dir=DIMENSION_VALUE_COLUMNS_MANIFEST_ANCHOR.directory,
     )
 
     @property

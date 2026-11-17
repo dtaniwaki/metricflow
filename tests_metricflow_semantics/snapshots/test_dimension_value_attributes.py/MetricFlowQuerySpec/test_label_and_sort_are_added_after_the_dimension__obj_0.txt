@@ -1,0 +1,53 @@
+test_name: test_label_and_sort_are_added_after_the_dimension
+test_filename: test_dimension_value_attributes.py
+docstring:
+  The label and sort dimensions are added with the entity links of the queried dimension.
+---
+MetricFlowQuerySpec(
+  dimension_specs=(
+    DimensionSpec(element_name='color', entity_links=(EntityReference(element_name='product'),)),
+    DimensionSpec(element_name='category_code', entity_links=(EntityReference(element_name='product'),)),
+    DimensionSpec(element_name='category_name', entity_links=(EntityReference(element_name='product'),)),
+    DimensionSpec(element_name='category_rank', entity_links=(EntityReference(element_name='product'),)),
+  ),
+  order_by_specs=(
+    OrderBySpec(
+      instance_spec=DimensionSpec(
+        element_name='category_rank',
+        entity_links=(EntityReference(element_name='product'),),
+      ),
+      descending=False,
+    ),
+    OrderBySpec(
+      instance_spec=DimensionSpec(
+        element_name='category_code',
+        entity_links=(EntityReference(element_name='product'),),
+      ),
+      descending=False,
+    ),
+  ),
+  filter_intersection=PydanticWhereFilterIntersection(),
+  filter_spec_resolution_lookup=FilterSpecResolutionLookUp(),
+  min_max_only=False,
+  apply_group_by=True,
+  input_spec_order=InputSpecOrder(
+    group_by_item_specs=(
+      DimensionSpec(
+        element_name='color',
+        entity_links=(EntityReference(element_name='product'),),
+      ),
+      DimensionSpec(
+        element_name='category_code',
+        entity_links=(EntityReference(element_name='product'),),
+      ),
+      DimensionSpec(
+        element_name='category_name',
+        entity_links=(EntityReference(element_name='product'),),
+      ),
+      DimensionSpec(
+        element_name='category_rank',
+        entity_links=(EntityReference(element_name='product'),),
+      ),
+    ),
+  ),
+)

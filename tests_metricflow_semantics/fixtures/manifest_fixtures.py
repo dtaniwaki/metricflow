@@ -13,6 +13,9 @@ from metricflow_semantics.test_helpers.semantic_manifest_yamls.ambiguous_resolut
     AMBIGUOUS_RESOLUTION_MANIFEST_ANCHOR,
 )
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.cyclic_join_manifest import CYCLIC_JOIN_MANIFEST_ANCHOR
+from metricflow_semantics.test_helpers.semantic_manifest_yamls.dimension_value_columns_manifest import (
+    DIMENSION_VALUE_COLUMNS_MANIFEST_ANCHOR,
+)
 from metricflow_semantics.test_helpers.semantic_manifest_yamls.extended_date_manifest import (
     EXTENDED_DATE_MANIFEST_ANCHOR,
 )
@@ -72,6 +75,18 @@ def multi_hop_join_manifest_lookup(  # noqa: D103
 def simple_multi_hop_join_manifest(template_mapping: Dict[str, str]) -> PydanticSemanticManifest:
     """Manifest used for many tests."""
     return mf_load_manifest_from_yaml_directory(SIMPLE_MULTI_HOP_JOIN_MANIFEST_ANCHOR.directory, template_mapping)
+
+
+@pytest.fixture(scope="session")
+def dimension_value_columns_manifest(template_mapping: Dict[str, str]) -> PydanticSemanticManifest:  # noqa: D103
+    return mf_load_manifest_from_yaml_directory(DIMENSION_VALUE_COLUMNS_MANIFEST_ANCHOR.directory, template_mapping)
+
+
+@pytest.fixture(scope="session")
+def dimension_value_columns_manifest_lookup(  # noqa: D103
+    dimension_value_columns_manifest: PydanticSemanticManifest,
+) -> SemanticManifestLookup:
+    return SemanticManifestLookup(dimension_value_columns_manifest)
 
 
 @pytest.fixture(scope="session")

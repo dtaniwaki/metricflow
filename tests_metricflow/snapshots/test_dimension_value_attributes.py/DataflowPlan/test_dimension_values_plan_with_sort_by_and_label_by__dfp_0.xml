@@ -1,0 +1,79 @@
+test_name: test_dimension_values_plan_with_sort_by_and_label_by
+test_filename: test_dimension_value_attributes.py
+docstring:
+  The plan for the values of a dimension that declares `sort_by` and `label_by` orders by `sort_by`.
+---
+<DataflowPlan>
+    <WriteToResultDataTableNode>
+        <!-- description = 'Write to DataTable' -->
+        <!-- node_id = NodeId(id_str='wrd_0') -->
+        <OrderByLimitNode>
+            <!-- description = "Order By ['product__category_rank', 'product__category_code']" -->
+            <!-- node_id = NodeId(id_str='obl_0') -->
+            <!-- order_by_spec =                                                -->
+            <!--   OrderBySpec(                                                 -->
+            <!--     instance_spec=DimensionSpec(                               -->
+            <!--       element_name='category_rank',                            -->
+            <!--       entity_links=(EntityReference(element_name='product'),), -->
+            <!--     ),                                                         -->
+            <!--     descending=False,                                          -->
+            <!--   )                                                            -->
+            <!-- order_by_spec =                                                -->
+            <!--   OrderBySpec(                                                 -->
+            <!--     instance_spec=DimensionSpec(                               -->
+            <!--       element_name='category_code',                            -->
+            <!--       entity_links=(EntityReference(element_name='product'),), -->
+            <!--     ),                                                         -->
+            <!--     descending=False,                                          -->
+            <!--   )                                                            -->
+            <!-- limit = 'None' -->
+            <SelectorNode>
+                <!-- description =                                                                              -->
+                <!--   "Select: ['product__category_code', 'product__category_name', 'product__category_rank']" -->
+                <!-- node_id = NodeId(id_str='pfe_1') -->
+                <!-- include_spec =                                               -->
+                <!--   DimensionSpec(                                             -->
+                <!--     element_name='category_code',                            -->
+                <!--     entity_links=(EntityReference(element_name='product'),), -->
+                <!--   )                                                          -->
+                <!-- include_spec =                                               -->
+                <!--   DimensionSpec(                                             -->
+                <!--     element_name='category_name',                            -->
+                <!--     entity_links=(EntityReference(element_name='product'),), -->
+                <!--   )                                                          -->
+                <!-- include_spec =                                               -->
+                <!--   DimensionSpec(                                             -->
+                <!--     element_name='category_rank',                            -->
+                <!--     entity_links=(EntityReference(element_name='product'),), -->
+                <!--   )                                                          -->
+                <!-- distinct = True -->
+                <SelectorNode>
+                    <!-- description =                                                                              -->
+                    <!--   "Select: ['product__category_code', 'product__category_name', 'product__category_rank']" -->
+                    <!-- node_id = NodeId(id_str='pfe_0') -->
+                    <!-- include_spec =                                               -->
+                    <!--   DimensionSpec(                                             -->
+                    <!--     element_name='category_code',                            -->
+                    <!--     entity_links=(EntityReference(element_name='product'),), -->
+                    <!--   )                                                          -->
+                    <!-- include_spec =                                               -->
+                    <!--   DimensionSpec(                                             -->
+                    <!--     element_name='category_name',                            -->
+                    <!--     entity_links=(EntityReference(element_name='product'),), -->
+                    <!--   )                                                          -->
+                    <!-- include_spec =                                               -->
+                    <!--   DimensionSpec(                                             -->
+                    <!--     element_name='category_rank',                            -->
+                    <!--     entity_links=(EntityReference(element_name='product'),), -->
+                    <!--   )                                                          -->
+                    <!-- distinct = False -->
+                    <ReadSqlSourceNode>
+                        <!-- description = "Read From SemanticModelDataSet('product_source')" -->
+                        <!-- node_id = NodeId(id_str='rss_36009') -->
+                        <!-- data_set = SemanticModelDataSet('product_source') -->
+                    </ReadSqlSourceNode>
+                </SelectorNode>
+            </SelectorNode>
+        </OrderByLimitNode>
+    </WriteToResultDataTableNode>
+</DataflowPlan>

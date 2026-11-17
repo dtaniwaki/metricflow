@@ -405,6 +405,8 @@ class DimensionInvariants:
 
     type: DimensionType
     is_partition: bool
+    sort_by: Optional[str] = None
+    label_by: Optional[str] = None
 
 
 class SemanticManifestValidationRule(ABC, Generic[SemanticManifestT]):
