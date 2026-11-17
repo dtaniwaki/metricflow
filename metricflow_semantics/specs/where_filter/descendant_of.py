@@ -25,7 +25,7 @@ def render_descendant_of_sql(column_name: str, source: DescendantOfSource, value
 
     The recursion starts from the rows whose parent is the value, so the value need not have a row of its own. The value
     itself is matched by the first condition. `UNION` (not `UNION ALL`) drops values that were already reached, so
-    parents that form a cycle end the recursion.
+    on DuckDB and Postgres parents that form a cycle end the recursion.
     """
     key = f"({source.key_expr})"
     parent = f"({source.parent_expr})"
